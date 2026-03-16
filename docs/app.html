@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" style="zoom: 0.7; height: 100%; width: 100%;">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta
@@ -21,6 +21,20 @@
     <meta name="theme-color" content="#0b1220" />
     <title>iControl</title>
     <style>
+      html {
+        height: 142.86%;
+        overflow: hidden;
+      }
+      body {
+        --scale: 0.7;
+
+        margin: 0;
+        transform: scale(var(--scale));
+        transform-origin: top left;
+
+        width: calc(100% / var(--scale));
+        height: calc(100% / var(--scale));
+      }
       :root {
         --color-bg: #0b1220;
         --color-text: #e5e7eb;
@@ -1703,11 +1717,14 @@
           (t) => t.textContent.trim().toLowerCase() === activeTab,
         );
 
-        const nextIndex = activeIndex < tabTitles.length - 1 ? activeIndex + 1 : 0;
-        tabClickCallback(tabTitles[nextIndex], nextIndex)
+        const nextIndex =
+          activeIndex < tabTitles.length - 1 ? activeIndex + 1 : 0;
+        tabClickCallback(tabTitles[nextIndex], nextIndex);
       }, 3000);
 
-      document.getElementById("buttons-wrapper").addEventListener("click", () => clearInterval(autoRotateInterval));
+      document
+        .getElementById("buttons-wrapper")
+        .addEventListener("click", () => clearInterval(autoRotateInterval));
 
       /* ====================================
        * Initialize the sliders
