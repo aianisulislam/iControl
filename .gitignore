@@ -1,0 +1,10 @@
+# Xcode user-specific files
+xcuserdata/
+*.xcuserstate
+
+# Build artifacts
+DerivedData/
+build/
+
+# Archives (keep out of repo)
+iControl/Resources/Archives/
