@@ -123,53 +123,92 @@ final class HTTPServer {
     }
 
     private func handleRequest(_ data: Data, for id: ObjectIdentifier) {
-        guard let client = clients[id] else {
-            return
-        }
+    guard let client = clients[id] else {
+        return
+    }
 
-        guard let request = String(data: data, encoding: .utf8) else {
-            print("iControl: invalid request data")
-            send(status: "400 Bad Request", body: "Bad Request", contentType: "text/plain", to: client.connection, closeAfterSend: true)
-            return
-        }
+    guard let request = String(data: data, encoding: .utf8) else {
+        print("iControl: invalid request data")
+        send(status: "400 Bad Request", body: "Bad Request", contentType: "text/plain", to: client.connection, closeAfterSend: true)
+        return
+    }
 
-        let lines = request.components(separatedBy: "\r\n")
-        guard let requestLine = lines.first, !requestLine.isEmpty else {
-            print("iControl: missing request line")
-            send(status: "400 Bad Request", body: "Bad Request", contentType: "text/plain", to: client.connection, closeAfterSend: true)
-            return
-        }
+    let lines = request.components(separatedBy: "\r\n")
+    guard let requestLine = lines.first, !requestLine.isEmpty else {
+        print("iControl: missing request line")
+        send(status: "400 Bad Request", body: "Bad Request", contentType: "text/plain", to: client.connection, closeAfterSend: true)
+        return
+    }
 
-        print("iControl: HTTP request received: \(requestLine)")
+    print("iControl: HTTP request received: \(requestLine)")
 
-        let parts = requestLine.split(separator: " ")
-        guard parts.count >= 2 else {
-            send(status: "400 Bad Request", body: "Bad Request", contentType: "text/plain", to: client.connection, closeAfterSend: true)
-            return
-        }
+    let parts = requestLine.split(separator: " ")
+    guard parts.count >= 2 else {
+        send(status: "400 Bad Request", body: "Bad Request", contentType: "text/plain", to: client.connection, closeAfterSend: true)
+        return
+    }
 
-        let method = String(parts[0])
-        let path = String(parts[1])
-        let headers = parseHeaders(lines.dropFirst())
+    let method = String(parts[0])
+    let rawPath = String(parts[1])
+    let headers = parseHeaders(lines.dropFirst())
 
-        if headers["upgrade"]?.lowercased() == "websocket" {
-            print("iControl: WebSocket upgrade attempt")
-            upgradeToWebSocket(headers: headers, connectionID: id)
-            return
-        }
+    if headers["upgrade"]?.lowercased() == "websocket" {
+        print("iControl: WebSocket upgrade attempt")
+        upgradeToWebSocket(headers: headers, connectionID: id)
+        return
+    }
 
-        guard method == "GET" else {
+    guard method == "GET" else {
+        send(status: "404 Not Found", body: "Not Found", contentType: "text/plain", to: client.connection, closeAfterSend: true)
+        return
+    }
+
+    // Strip query string if present
+    let path = rawPath.components(separatedBy: "?").first ?? rawPath
+
+    // Resolve to index.html for root
+    let filePath = (path == "/") ? "/index.html" : path
+
+    // Sanitize — prevent directory traversal
+    guard !filePath.contains("..") else {
+        send(status: "403 Forbidden", body: "Forbidden", contentType: "text/plain", to: client.connection, closeAfterSend: true)
+        return
+    }
+
+    // Strip leading slash and split into name + extension
+        let relativePath = String(filePath.dropFirst())
+        let url = URL(fileURLWithPath: relativePath)
+        let fileName = url.deletingPathExtension().path
+        let fileExtension = url.pathExtension
+
+        guard let resourceURL = Bundle.main.url(forResource: fileName, withExtension: fileExtension.isEmpty ? nil : fileExtension),
+              let fileData = try? Data(contentsOf: resourceURL) else {
+            print("iControl: resource not found: \(relativePath)")
             send(status: "404 Not Found", body: "Not Found", contentType: "text/plain", to: client.connection, closeAfterSend: true)
             return
         }
 
-        guard path == "/" else {
-            send(status: "404 Not Found", body: "Not Found", contentType: "text/plain", to: client.connection, closeAfterSend: true)
-            return
-        }
+        let contentType = mimeType(for: fileExtension)
+        print("iControl: serving \(relativePath) (\(contentType))")
+        send(status: "200 OK", data: fileData, contentType: contentType, to: client.connection, closeAfterSend: true)
+    }
 
-        let html = loadIndexHTML()
-        send(status: "200 OK", body: html, contentType: "text/html; charset=utf-8", to: client.connection, closeAfterSend: true)
+    private func mimeType(for extension: String) -> String {
+        switch `extension`.lowercased() {
+        case "html":        return "text/html; charset=utf-8"
+        case "css":         return "text/css; charset=utf-8"
+        case "js":          return "application/javascript; charset=utf-8"
+        case "json":        return "application/json"
+        case "png":         return "image/png"
+        case "jpg", "jpeg": return "image/jpeg"
+        case "svg":         return "image/svg+xml"
+        case "ico":         return "image/x-icon"
+        case "webp":        return "image/webp"
+        case "woff":        return "font/woff"
+        case "woff2":       return "font/woff2"
+        case "webmanifest": return "application/manifest+json"
+        default:            return "application/octet-stream"
+        }
     }
 
     private func parseHeaders(_ lines: ArraySlice<String>) -> [String: String] {

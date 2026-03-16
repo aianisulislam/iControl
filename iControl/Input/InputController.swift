@@ -7,6 +7,9 @@ final class InputController {
     var onVolumeChanged: ((Double) -> Void)?
 
     private let volumeObserverQueue = DispatchQueue(label: "iControl.VolumeObserver")
+    private let keyboardEventSource = CGEventSource(stateID: .hidSystemState)
+    private let keyboardTapLocation: CGEventTapLocation = .cghidEventTap
+    private let controlArrowTapLocation: CGEventTapLocation = .cgAnnotatedSessionEventTap
     private var lastKnownPosition: CGPoint
     private var lastMoveTime: Date = .distantPast
 
@@ -83,20 +86,28 @@ final class InputController {
     }
 
     func typeText(string: String) {
-        guard !string.isEmpty else {
-            return
+    guard !string.isEmpty else { return }
+    
+    let lines = string.components(separatedBy: "\n")
+    
+    for (index, line) in lines.enumerated() {
+        // Type the line content
+        if !line.isEmpty {
+            let utf16 = Array(line.utf16)
+            let down = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: true)
+            let up = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false)
+            down?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+            up?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+            down?.post(tap: .cghidEventTap)
+            up?.post(tap: .cghidEventTap)
         }
-
-        let utf16 = Array(string.utf16)
-        let down = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: true)
-        let up = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false)
-
-        down?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-        up?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-
-        down?.post(tap: .cghidEventTap)
-        up?.post(tap: .cghidEventTap)
+        
+        // Send Shift+Return for newline, except after the last line
+        if index < lines.count - 1 {
+            postKeyPress(KeyPress(keyCode: 36, modifiers: .maskShift))
+        }
     }
+}
 
     func performSystemAction(_ action: String, value: Double? = nil) {
         switch action {
@@ -107,13 +118,10 @@ final class InputController {
         case "previousTrack":
             postSystemKey(18)
         case "volumeUp":
-//            adjustVolume(by: 0.06)
             postSystemKey(0)
         case "volumeDown":
-//            adjustVolume(by: -0.06)
             postSystemKey(1)
         case "mute":
-//            toggleMute()
             postSystemKey(7)
         case "missionControl":
             postKey(keyCode: 160)
@@ -162,6 +170,18 @@ final class InputController {
         try? process.run()
     }
 
+    func openURL(_ target: String) {
+        let trimmed = target.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard
+            !trimmed.isEmpty,
+            let url = URL(string: trimmed)
+        else {
+            return
+        }
+
+        NSWorkspace.shared.open(url)
+    }
+
     private func postClick(button: String, clickState: Int64) {
         let source = CGEventSource(stateID: .hidSystemState)
         let point = lastKnownPosition
@@ -196,15 +216,16 @@ final class InputController {
         up?.post(tap: .cghidEventTap)
     }
 
-    private func postKey(keyCode: CGKeyCode, flags: CGEventFlags = [], tap: CGEventTapLocation = .cghidEventTap) {
-        let down = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: true)
-        let up = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: false)
+    private func postKey(keyCode: CGKeyCode, flags: CGEventFlags = [], tap: CGEventTapLocation? = nil) {
+        let postTap = tap ?? keyboardTapLocation
+        let down = CGEvent(keyboardEventSource: keyboardEventSource, virtualKey: keyCode, keyDown: true)
+        let up = CGEvent(keyboardEventSource: keyboardEventSource, virtualKey: keyCode, keyDown: false)
         if !flags.isEmpty {
             down?.flags = flags
             up?.flags = flags
         }
-        down?.post(tap: tap)
-        up?.post(tap: tap)
+        down?.post(tap: postTap)
+        up?.post(tap: postTap)
     }
 
     private func postSystemKey(_ key: Int32) {
@@ -252,28 +273,53 @@ final class InputController {
 
     private func postKeyPress(_ keyPress: KeyPress) {
         let modifierKeyCodes = modifierKeyCodes(for: keyPress.modifiers)
+        let tapLocation = tapLocation(for: keyPress)
+        var pressedFlags: CGEventFlags = []
 
         for modifierKeyCode in modifierKeyCodes {
-            let modifierDown = CGEvent(keyboardEventSource: nil, virtualKey: modifierKeyCode, keyDown: true)
-            modifierDown?.flags = flags(forPressedModifierKeyCode: modifierKeyCode)
-            modifierDown?.post(tap: .cghidEventTap)
+            let modifierFlag = flags(forPressedModifierKeyCode: modifierKeyCode)
+            pressedFlags.insert(modifierFlag)
+
+            let modifierDown = CGEvent(keyboardEventSource: keyboardEventSource, virtualKey: modifierKeyCode, keyDown: true)
+            modifierDown?.flags = pressedFlags
+            modifierDown?.post(tap: tapLocation)
             usleep(1500)
         }
 
-        let down = CGEvent(keyboardEventSource: nil, virtualKey: keyPress.keyCode, keyDown: true)
-        let up = CGEvent(keyboardEventSource: nil, virtualKey: keyPress.keyCode, keyDown: false)
+        let down = CGEvent(keyboardEventSource: keyboardEventSource, virtualKey: keyPress.keyCode, keyDown: true)
+        let up = CGEvent(keyboardEventSource: keyboardEventSource, virtualKey: keyPress.keyCode, keyDown: false)
         down?.flags = keyPress.modifiers
         up?.flags = keyPress.modifiers
-        down?.post(tap: .cghidEventTap)
+        down?.post(tap: tapLocation)
         usleep(1500)
-        up?.post(tap: .cghidEventTap)
+        up?.post(tap: tapLocation)
         usleep(1500)
 
         for modifierKeyCode in modifierKeyCodes.reversed() {
-            let modifierUp = CGEvent(keyboardEventSource: nil, virtualKey: modifierKeyCode, keyDown: false)
-            modifierUp?.flags = []
-            modifierUp?.post(tap: .cghidEventTap)
+            let modifierFlag = flags(forPressedModifierKeyCode: modifierKeyCode)
+            pressedFlags.remove(modifierFlag)
+
+            let modifierUp = CGEvent(keyboardEventSource: keyboardEventSource, virtualKey: modifierKeyCode, keyDown: false)
+            modifierUp?.flags = pressedFlags
+            modifierUp?.post(tap: tapLocation)
             usleep(1500)
+        }
+    }
+
+    private func tapLocation(for keyPress: KeyPress) -> CGEventTapLocation {
+        if keyPress.modifiers == .maskControl, isArrowKey(keyPress.keyCode) {
+            return controlArrowTapLocation
+        }
+
+        return keyboardTapLocation
+    }
+
+    private func isArrowKey(_ keyCode: CGKeyCode) -> Bool {
+        switch keyCode {
+        case 123, 124, 125, 126:
+            return true
+        default:
+            return false
         }
     }
 
@@ -290,7 +336,7 @@ final class InputController {
                 modifiers.insert(.maskCommand)
             case "shift":
                 modifiers.insert(.maskShift)
-            case "option", "alt":
+            case "option", "opt", "alt":
                 modifiers.insert(.maskAlternate)
             case "ctrl", "control":
                 modifiers.insert(.maskControl)
@@ -301,6 +347,7 @@ final class InputController {
 
         return KeyPress(keyCode: keyCode, modifiers: modifiers)
     }
+    
     private func defaultOutputDeviceID() -> AudioDeviceID? {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDefaultOutputDevice,
@@ -520,48 +567,87 @@ final class InputController {
     private func keyCode(for key: String) -> CGKeyCode? {
         switch key {
         case "space":
-            49
+            return 49
         case "right", "forward":
-            124
+            return 124
         case "left", "back":
-            123
+            return 123
         case "up":
-            126
+            return 126
         case "down":
-            125
+            return 125
         case "return", "enter":
-            36
+            return 36
         case "escape":
-            53
+            return 53
         case "tab":
-            48
+            return 48
         case "backspace", "delete":
-            51
+            return 51
         case "home":
-            115
+            return 115
         case "end":
-            119
+            return 119
         case "pageup":
-            116
+            return 116
         case "pagedown":
-            121
-        case "a":
-            0
-        case "c":
-            8
-        case "f":
-            3
-        case "m":
-            46
-        case "q":
-            12
-        case "r":
-            15
-        case "v":
-            9
+            return 121
         default:
-            nil
+            return alphaNumericKeyCode(for: key)
         }
+    }
+
+    private func alphaNumericKeyCode(for key: String) -> CGKeyCode? {
+        let keyCodes: [String: CGKeyCode] = [
+            "a": 0,
+            "s": 1,
+            "d": 2,
+            "f": 3,
+            "h": 4,
+            "g": 5,
+            "z": 6,
+            "x": 7,
+            "c": 8,
+            "v": 9,
+            "b": 11,
+            "q": 12,
+            "w": 13,
+            "e": 14,
+            "r": 15,
+            "y": 16,
+            "t": 17,
+            "1": 18,
+            "2": 19,
+            "3": 20,
+            "4": 21,
+            "6": 22,
+            "5": 23,
+            "=": 24,
+            "9": 25,
+            "7": 26,
+            "-": 27,
+            "8": 28,
+            "0": 29,
+            "]": 30,
+            "o": 31,
+            "u": 32,
+            "[": 33,
+            "i": 34,
+            "p": 35,
+            "l": 37,
+            "j": 38,
+            "'": 39,
+            "k": 40,
+            ";": 41,
+            "\\": 42,
+            ",": 43,
+            "/": 44,
+            "n": 45,
+            "m": 46,
+            ".": 47
+        ]
+
+        return keyCodes[key]
     }
 }
 

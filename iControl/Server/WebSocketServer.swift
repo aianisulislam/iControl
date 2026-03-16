@@ -4,6 +4,7 @@ import Network
 struct RemoteCommand: Decodable {
     let type: String
     let key: String?
+    let url: String?
     let value: CommandValue?
     let button: String?
     let action: String?
@@ -133,6 +134,10 @@ final class WebSocketServer {
         case "app":
             if let app = command.app {
                 inputController.launchApp(app)
+            }
+        case "url":
+            if let url = command.url {
+                inputController.openURL(url)
             }
         default:
             break
