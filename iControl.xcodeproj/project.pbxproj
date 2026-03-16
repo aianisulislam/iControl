@@ -10,9 +10,24 @@
 		76DF05E92F5F7A3800A9B6A2 /* iControl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iControl.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		763B3AD82F68AEC500C48202 /* Exceptions for "iControl" folder in "iControl" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Resources/Archives/index_v1.0.0.html,
+				Resources/Archives/index_v1.1.0.html,
+				Resources/Archives/index_v1.1.1.html,
+			);
+			target = 76DF05E82F5F7A3800A9B6A2 /* iControl */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		76DF05EB2F5F7A3800A9B6A2 /* iControl */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				763B3AD82F68AEC500C48202 /* Exceptions for "iControl" folder in "iControl" target */,
+			);
 			path = iControl;
 			sourceTree = "<group>";
 		};
@@ -280,9 +295,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 77GKNP5Q4P;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -311,9 +328,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 77GKNP5Q4P;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -347,7 +366,7 @@
 				76DF05F32F5F7A3A00A9B6A2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		76DF05F42F5F7A3A00A9B6A2 /* Build configuration list for PBXNativeTarget "iControl" */ = {
 			isa = XCConfigurationList;
@@ -356,7 +375,7 @@
 				76DF05F62F5F7A3A00A9B6A2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};

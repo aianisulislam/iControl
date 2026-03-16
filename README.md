@@ -1,141 +1,58 @@
 # iControl
 
-**Control your Mac from any device. No app. No account. No subscription.**
+A zero-install LAN remote control for macOS. Open a URL on any device with a browser and control your Mac — no app, no account, no cloud.
 
-iControl is a zero-install, LAN-only macOS remote control. Open the URL on any device with a browser and you're in control — no installation, no sign-up, no cloud, no trackers.
-
-Built out of frustration with subscription-gated, ad-riddled remote control apps that charge recurring fees for something that doesn't continuously cost them anything.
+[Website & download](https://aianisulislam.github.io/iControl/) · MIT License
 
 ---
 
-## Features
-
-- **Zero-install client** — any device, any OS, any browser. Phone, tablet, laptop — if it has a browser, it works.
-- **Platform agnostic** — Android, iOS, Windows, Linux. No ecosystem lock-in.
-- **LAN only** — your input never leaves your network. No relay servers, no cloud, no telemetry.
-- **Native Swift backend** — pure Swift, zero external dependencies. Direct access to macOS APIs for native feel.
-- **Native cursor acceleration** — pointer movement goes through the HID event pipeline, feels like real hardware.
-- **PWA ready** — install to your home screen for a native app experience.
-
----
-
-## What you can do
-
-### Touchpad
-- 1-finger move with native macOS cursor acceleration
-- 2-finger scroll
-- Tap to click, double tap, triple tap
-- Adjustable movement and scroll sensitivity
-
-### General
-- Sticky modifier keys — Cmd, Opt, Shift, Ctrl
-- Arrow keys, Tab, Return, Space, Escape, Backspace
-- Home, End, Page Up, Page Down
-- Modifier-aware — toggle Cmd then tap any key
-
-### System
-- Mission Control, Launchpad, App Exposé
-- App Switcher (Cmd+Tab), Spotlight (Cmd+Space)
-- Minimize, Fullscreen, Close (Cmd+Q)
-- Select All, Copy, Cut, Paste
-- Undo (Cmd+Z), Redo (Cmd+Shift+Z)
-- New (Cmd+N), Open (Cmd+O)
-
-### Media
-- Play/Pause, Next, Previous track
-- Volume Up/Down with system overlay
-- Volume slider for precise control
-- iPod wheel interface
-
-### Type
-- Full mobile keyboard intelligence, autocorrect, predictions, emoji, voice input
-- Cursor pad — drag to reposition cursor
-- Quick actions — Select All, Copy, Cut, Paste, Backspace
-- Cross-platform clipboard bridge — copy on phone, paste on Mac
-
-### Apps
-- One-tap launch or focus for your most-used apps
-- Open any URL directly in the default browser
-- Custom app launcher by name or bundle ID
-- Works as a cross-device URL opener — copy a link on your phone, open it on your Mac instantly
-
----
-
-## How it works
-
-iControl runs as a native Swift menu bar app on your Mac. It serves a single HTML file over HTTP and maintains a WebSocket connection with the client. Commands sent from the browser are validated and executed via macOS APIs — CGEvent for input simulation, NSWorkspace for app management, CoreAudio for volume control.
+## Architecture
 
 ```
-Phone browser → WebSocket → Swift server → macOS APIs → System input
+Browser (any device) ──WebSocket──▶ Swift HTTP/WS server ──▶ macOS APIs
+                                        port 4040
 ```
 
-One-way communication only. The Mac never sends sensitive data to the client.
+The server is a native Swift menu bar app with no external dependencies. It serves a single self-contained `index.html` and maintains a WebSocket connection for receiving commands. Commands are executed via:
+
+| Purpose | API |
+|---|---|
+| Mouse & keyboard input | `CGEvent` / HID pipeline |
+| App management | `NSWorkspace` |
+| Volume control | `CoreAudio` |
+| Launch at login | `ServiceManagement` (`SMAppService`) |
+
+Communication is one-way — the Mac executes commands and never sends sensitive data back to the client (only connection state and volume level).
 
 ---
 
-## Getting started
+## Project structure
 
-### Requirements
-- macOS 13 or later
-- Any device with a modern browser on the same network
-
-### Installation
-1. Download the latest release
-2. Open `iControl.app`
-3. Scan the QR code in the menu bar icon to open in your phone
-4. Grant Accessibility permissions when prompted (required for input simulation)
-
-### Connecting
-By default iControl is accessible at:
 ```
-http://your-mac-hostname.local:4040
-```
-
-Your hostname is usually your Mac's name with spaces replaced by hyphens. You can find the exact URL in the iControl menu bar item.
-
-### Optional: Install as PWA
-On iOS — open in Safari, tap Share → Add to Home Screen
-On Android — open in Chrome, tap menu → Add to Home Screen
-
----
-
-## Permissions
-
-iControl requires **Accessibility access** to simulate keyboard and mouse input. This is a macOS requirement for any app that controls input programmatically.
-
-Go to: **System Settings → Privacy & Security → Accessibility** and enable iControl.
-
-No other permissions are required. iControl does not access your files, contacts, camera, microphone, or any personal data.
-
----
-
-## Security
-
-- **LAN only** — iControl only accepts connections from your local network
-- **No cloud** — no data ever leaves your device
-- **No accounts** — nothing to sign up for, nothing to leak
-- **One-way** — the client sends commands, the Mac executes them. No data flows back to the client except connection state and volume level.
-
-> Auth modes (accept/password/none) are planned for a future release.
-
----
-
-## Customizing the app grid
-
-The Apps tab ships with default macOS apps. To customize it for your workflow, clone the repo and edit the buttons in the `apps` section of `index.html`. Each button is a single line:
-
-```html
-<button data-command='{"type":"app","app":"Your App Name"}'>
+iControl/
+├── iControl.xcodeproj/
+└── iControl/
+    ├── App/
+    │   └── iControlApp.swift      # App entry point, menu bar UI, QR code generation
+    ├── Input/
+    │   └── InputController.swift  # All input simulation (mouse, keyboard, media, volume)
+    ├── Server/
+    │   ├── HTTPServer.swift       # HTTP server — serves index.html on port 4040
+    │   └── WebSocketServer.swift  # WebSocket server — receives and dispatches commands
+    └── Resources/
+        ├── index.html             # Entire client UI (single file, no build step)
+        ├── manifest.json          # PWA manifest
+        ├── sw.js                  # Service worker for offline/PWA support
+        └── favicon*, *.png        # Icons
 ```
 
-For URL shortcuts:
-```html
-<button data-command='{"type":"url","url":"https://example.com"}'>
-```
+No package managers, no build steps, no external dependencies — on either the client or the server side.
 
 ---
 
 ## Building from source
+
+**Requirements:** Xcode 15+, macOS 13 SDK or later.
 
 ```bash
 git clone https://github.com/aianisulislam/iControl
@@ -143,24 +60,98 @@ cd iControl
 open iControl.xcodeproj
 ```
 
-Build and run in Xcode. No external dependencies, no package manager setup required.
+Build and run (`Cmd+R`) in Xcode. The app will appear in the menu bar. On first run, macOS will prompt for Accessibility permissions — required for input simulation.
+
+To build a release archive: **Product → Archive** in Xcode.
 
 ---
 
-## Philosophy
+## Key entry points
 
-iControl does one thing: send input from your phone to your Mac. It does not read files, expose system state, sync clipboards, or phone home. The attack surface is intentionally minimal — a whitelisted command set, validated and executed on the host.
+### [iControlApp.swift](iControl/App/iControlApp.swift)
+App entry point and menu bar UI. Owns the `AppController`, which starts the `HTTPServer`. Also handles:
+- QR code generation from the local mDNS URL (`http://<hostname>.local:4040`)
+- Launch-at-login toggle via `SMAppService`
 
-The client is a web page. The server is a Swift app. There are no frameworks, no package managers, no build steps on either side. The entire project is readable in an afternoon.
+The served URL is derived from `Host.current().localizedName` with spaces replaced by hyphens.
 
-Fork it, skin it, make it yours. If you use it, that name still holds — **I control**.
+### [HTTPServer.swift](iControl/Server/HTTPServer.swift)
+Listens on port 4040. Serves `index.html` for all HTTP requests and upgrades WebSocket connections.
+
+### [WebSocketServer.swift](iControl/Server/WebSocketServer.swift)
+Receives JSON command frames from the browser and dispatches them to `InputController`.
+
+### [InputController.swift](iControl/Input/InputController.swift)
+Implements all input simulation. Each command type maps to a macOS API call. This is where to add new input actions or modify existing behaviour.
+
+### [index.html](iControl/Resources/index.html)
+The entire client UI in one file — HTML, CSS, and JavaScript. No framework, no bundler. Edit directly; changes take effect on the next app build.
+
+---
+
+## Customisation
+
+### Adding or changing input actions
+
+1. Add a new command type in the WebSocket message handler in [WebSocketServer.swift](iControl/Server/WebSocketServer.swift).
+2. Implement the action in [InputController.swift](iControl/Input/InputController.swift) using `CGEvent`, `NSWorkspace`, or the relevant macOS API.
+3. Trigger it from [index.html](iControl/Resources/index.html) by sending a matching JSON frame over the WebSocket.
+
+### WebSocket command format
+
+Commands are JSON objects sent as text frames:
+
+```json
+{ "type": "mouse", "dx": 10, "dy": -5 }
+{ "type": "key", "key": "space" }
+{ "type": "app", "app": "Finder" }
+{ "type": "url", "url": "https://example.com" }
+{ "type": "volume", "level": 0.5 }
+```
+
+See [WebSocketServer.swift](iControl/Server/WebSocketServer.swift) for the full list of handled types.
+
+### Customising the Apps tab
+
+The app grid in [index.html](iControl/Resources/index.html) is a list of buttons with `data-command` attributes:
+
+```html
+<!-- Launch or focus an app -->
+<button data-command='{"type":"app","app":"Finder"}'>Finder</button>
+
+<!-- Open a URL in the default browser -->
+<button data-command='{"type":"url","url":"https://example.com"}'>Example</button>
+```
+
+Edit the `apps` section in `index.html` to add, remove, or reorder entries. Apps can be referenced by display name or bundle ID.
+
+### Changing the port
+
+The port is hardcoded to `4040` in [iControlApp.swift](iControl/App/iControlApp.swift) (passed to `HTTPServer`) and in the URL construction in `controlURL()`. Change both if needed.
+
+---
+
+## Permissions
+
+iControl requires **Accessibility access** to simulate input events. This is enforced by macOS for any app using `CGEvent` programmatically.
+
+**System Settings → Privacy & Security → Accessibility → enable iControl**
+
+No other permissions are required.
+
+---
+
+## Security model
+
+- Accepts connections from the local network only (LAN-bound server socket)
+- No cloud relay, no telemetry, no accounts
+- Whitelisted command set — only recognised command types are executed
+- One-way data flow — the client cannot read files or query system state
+
+Auth modes (password / accept-once / open) are planned for a future release.
 
 ---
 
 ## License
 
 MIT — do whatever you want with it.
-
----
-
-*Built with spite, refined on a couch.*
