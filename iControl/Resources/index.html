@@ -1035,7 +1035,6 @@
             <svg
               width="20"
               height="20"
-              viewBox="0 0 19.2773 18.9258"
               viewBox="0 0 18.5859 18.2461"
             >
               <rect height="18.2461" opacity="0" width="18.5859" x="0" y="0" />
@@ -1692,7 +1691,6 @@
             <svg
               width="20"
               height="20"
-              viewBox="0 0 19.2773 18.9258"
               viewBox="0 0 18.5859 18.2461"
             >
               <rect height="18.2461" opacity="0" width="18.5859" x="0" y="0" />
@@ -1929,7 +1927,7 @@
         if (payload.type === "state") {
           if (payload.volume !== undefined) {
             const volumeSlider = document.querySelector(
-              '.slider[data-control="volume"]',
+              '.slider[data-control="setVolume"]',
             );
             if (volumeSlider) {
               volumeSlider.dataset.value = payload.volume;

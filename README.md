@@ -1,6 +1,13 @@
 # iControl
 
-A zero-install LAN remote control for macOS. Open a URL on any device with a browser and control your Mac — no app, no account, no cloud.
+iControl is a wireless trackpad, keyboard and media remote for your Mac. No app to install — open a URL on your phone, it works.
+
+- **Zero install** — any browser, any device, on your LAN
+- **Under 1MB** — the entire app, server and client included
+- **No account, no cloud, no telemetry** — physically cannot leave your network
+- **PWA-ready** — add to Home Screen, it feels like a native app
+
+Built out of spite for remote control apps that ask to track you across other apps for ad targeting, bloat your phone and sell you subscriptions for something that doesn't continuously cost them anything.
 
 [Website & download](https://aianisulislam.github.io/iControl/) · MIT License
 

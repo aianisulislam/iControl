@@ -1,6 +1,5 @@
 import AppKit
 import CoreAudio
-import CoreGraphics
 import Foundation
 
 final class InputController {
@@ -86,28 +85,26 @@ final class InputController {
     }
 
     func typeText(string: String) {
-    guard !string.isEmpty else { return }
-    
-    let lines = string.components(separatedBy: "\n")
-    
-    for (index, line) in lines.enumerated() {
-        // Type the line content
-        if !line.isEmpty {
-            let utf16 = Array(line.utf16)
-            let down = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: true)
-            let up = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false)
-            down?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-            up?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-            down?.post(tap: .cghidEventTap)
-            up?.post(tap: .cghidEventTap)
-        }
-        
-        // Send Shift+Return for newline, except after the last line
-        if index < lines.count - 1 {
-            postKeyPress(KeyPress(keyCode: 36, modifiers: .maskShift))
+        guard !string.isEmpty else { return }
+
+        let lines = string.components(separatedBy: "\n")
+
+        for (index, line) in lines.enumerated() {
+            if !line.isEmpty {
+                let utf16 = Array(line.utf16)
+                let down = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: true)
+                let up = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false)
+                down?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+                up?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+                down?.post(tap: .cghidEventTap)
+                up?.post(tap: .cghidEventTap)
+            }
+
+            if index < lines.count - 1 {
+                postKeyPress(KeyPress(keyCode: 36, modifiers: .maskShift))
+            }
         }
     }
-}
 
     func performSystemAction(_ action: String, value: Double? = nil) {
         switch action {
@@ -145,18 +142,13 @@ final class InputController {
     }
 
     func currentVolumePercentage() -> Double? {
-        guard let volume = systemVolume() else {
-            return nil
-        }
-
+        guard let volume = systemVolume() else { return nil }
         return Double(volume * 100)
     }
 
     func launchApp(_ target: String) {
         let trimmed = target.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            return
-        }
+        guard !trimmed.isEmpty else { return }
 
         if trimmed.contains("."),
            let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: trimmed) {
@@ -172,20 +164,15 @@ final class InputController {
 
     func openURL(_ target: String) {
         let trimmed = target.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard
-            !trimmed.isEmpty,
-            let url = URL(string: trimmed)
-        else {
-            return
-        }
+        guard !trimmed.isEmpty,
+              let url = URL(string: trimmed)
+        else { return }
 
         NSWorkspace.shared.open(url)
     }
 
     private func postClick(button: String, clickState: Int64) {
-        let source = CGEventSource(stateID: .hidSystemState)
-        let point = lastKnownPosition
-        postClick(button: button, clickState: clickState, source: source, point: point)
+        postClick(button: button, clickState: clickState, source: CGEventSource(stateID: .hidSystemState), point: lastKnownPosition)
     }
 
     private func postClick(button: String, clickState: Int64, source: CGEventSource?, point: CGPoint) {
@@ -246,7 +233,6 @@ final class InputController {
             data1: data1,
             data2: -1
         )
-
         event?.cgEvent?.post(tap: .cghidEventTap)
     }
 
@@ -255,18 +241,11 @@ final class InputController {
         setSystemVolume(scalar)
     }
 
-    private func adjustVolume(by delta: Float) {
-        let current = systemVolume() ?? 0.5
-        let next = max(0, min(1, current + delta))
-        setSystemVolume(next)
-    }
-
     private func toggleMute() {
         guard let deviceID = defaultOutputDeviceID() else {
             print("iControl: failed to find default output device for mute")
             return
         }
-
         let isMuted = isSystemMuted(deviceID: deviceID) ?? false
         setSystemMuted(!isMuted, deviceID: deviceID)
     }
@@ -279,7 +258,6 @@ final class InputController {
         for modifierKeyCode in modifierKeyCodes {
             let modifierFlag = flags(forPressedModifierKeyCode: modifierKeyCode)
             pressedFlags.insert(modifierFlag)
-
             let modifierDown = CGEvent(keyboardEventSource: keyboardEventSource, virtualKey: modifierKeyCode, keyDown: true)
             modifierDown?.flags = pressedFlags
             modifierDown?.post(tap: tapLocation)
@@ -298,7 +276,6 @@ final class InputController {
         for modifierKeyCode in modifierKeyCodes.reversed() {
             let modifierFlag = flags(forPressedModifierKeyCode: modifierKeyCode)
             pressedFlags.remove(modifierFlag)
-
             let modifierUp = CGEvent(keyboardEventSource: keyboardEventSource, virtualKey: modifierKeyCode, keyDown: false)
             modifierUp?.flags = pressedFlags
             modifierUp?.post(tap: tapLocation)
@@ -310,44 +287,31 @@ final class InputController {
         if keyPress.modifiers == .maskControl, isArrowKey(keyPress.keyCode) {
             return controlArrowTapLocation
         }
-
         return keyboardTapLocation
     }
 
     private func isArrowKey(_ keyCode: CGKeyCode) -> Bool {
-        switch keyCode {
-        case 123, 124, 125, 126:
-            return true
-        default:
-            return false
-        }
+        (123...126).contains(keyCode)
     }
 
     private func keyPress(for key: String) -> KeyPress? {
         let parts = key.lowercased().split(separator: "+").map(String.init)
-        guard let keyName = parts.last, let keyCode = keyCode(for: keyName) else {
-            return nil
-        }
+        guard let keyName = parts.last, let keyCode = keyCode(for: keyName) else { return nil }
 
         var modifiers: CGEventFlags = []
         for modifier in parts.dropLast() {
             switch modifier {
-            case "cmd", "command":
-                modifiers.insert(.maskCommand)
-            case "shift":
-                modifiers.insert(.maskShift)
-            case "option", "opt", "alt":
-                modifiers.insert(.maskAlternate)
-            case "ctrl", "control":
-                modifiers.insert(.maskControl)
-            default:
-                break
+            case "cmd", "command":      modifiers.insert(.maskCommand)
+            case "shift":               modifiers.insert(.maskShift)
+            case "option", "opt", "alt":modifiers.insert(.maskAlternate)
+            case "ctrl", "control":     modifiers.insert(.maskControl)
+            default: break
             }
         }
 
         return KeyPress(keyCode: keyCode, modifiers: modifiers)
     }
-    
+
     private func defaultOutputDeviceID() -> AudioDeviceID? {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDefaultOutputDevice,
@@ -392,15 +356,10 @@ final class InputController {
             mElement: element
         )
 
-        guard AudioObjectHasProperty(deviceID, &address) else {
-            return
-        }
+        guard AudioObjectHasProperty(deviceID, &address) else { return }
 
         let status = AudioObjectAddPropertyListenerBlock(deviceID, &address, volumeObserverQueue) { [weak self] _, _ in
-            guard let self, let volume = self.currentVolumePercentage() else {
-                return
-            }
-
+            guard let self, let volume = self.currentVolumePercentage() else { return }
             DispatchQueue.main.async {
                 self.onVolumeChanged?(volume)
             }
@@ -412,9 +371,7 @@ final class InputController {
     }
 
     private func systemVolume() -> Float? {
-        guard let deviceID = defaultOutputDeviceID() else {
-            return nil
-        }
+        guard let deviceID = defaultOutputDeviceID() else { return nil }
 
         if let volume = volumeScalar(deviceID: deviceID, element: kAudioObjectPropertyElementMain) {
             return volume
@@ -453,9 +410,7 @@ final class InputController {
             mElement: element
         )
 
-        guard AudioObjectHasProperty(deviceID, &address) else {
-            return nil
-        }
+        guard AudioObjectHasProperty(deviceID, &address) else { return nil }
 
         var volume = Float32(0)
         var dataSize = UInt32(MemoryLayout<Float32>.size)
@@ -470,15 +425,11 @@ final class InputController {
             mElement: element
         )
 
-        guard AudioObjectHasProperty(deviceID, &address) else {
-            return false
-        }
+        guard AudioObjectHasProperty(deviceID, &address) else { return false }
 
         var isSettable: DarwinBoolean = false
         let settableStatus = AudioObjectIsPropertySettable(deviceID, &address, &isSettable)
-        guard settableStatus == noErr, isSettable.boolValue else {
-            return false
-        }
+        guard settableStatus == noErr, isSettable.boolValue else { return false }
 
         var mutableVolume = Float32(volume)
         let dataSize = UInt32(MemoryLayout<Float32>.size)
@@ -493,9 +444,7 @@ final class InputController {
             mElement: kAudioObjectPropertyElementMain
         )
 
-        guard AudioObjectHasProperty(deviceID, &address) else {
-            return nil
-        }
+        guard AudioObjectHasProperty(deviceID, &address) else { return nil }
 
         var muted: UInt32 = 0
         var dataSize = UInt32(MemoryLayout<UInt32>.size)
@@ -532,121 +481,50 @@ final class InputController {
 
     private func modifierKeyCodes(for flags: CGEventFlags) -> [CGKeyCode] {
         var keyCodes: [CGKeyCode] = []
-
-        if flags.contains(.maskCommand) {
-            keyCodes.append(55)
-        }
-        if flags.contains(.maskShift) {
-            keyCodes.append(56)
-        }
-        if flags.contains(.maskAlternate) {
-            keyCodes.append(58)
-        }
-        if flags.contains(.maskControl) {
-            keyCodes.append(59)
-        }
-
+        if flags.contains(.maskCommand)  { keyCodes.append(55) }
+        if flags.contains(.maskShift)    { keyCodes.append(56) }
+        if flags.contains(.maskAlternate){ keyCodes.append(58) }
+        if flags.contains(.maskControl)  { keyCodes.append(59) }
         return keyCodes
     }
 
     private func flags(forPressedModifierKeyCode keyCode: CGKeyCode) -> CGEventFlags {
         switch keyCode {
-        case 55:
-            .maskCommand
-        case 56:
-            .maskShift
-        case 58:
-            .maskAlternate
-        case 59:
-            .maskControl
-        default:
-            []
+        case 55: return .maskCommand
+        case 56: return .maskShift
+        case 58: return .maskAlternate
+        case 59: return .maskControl
+        default: return []
         }
     }
 
     private func keyCode(for key: String) -> CGKeyCode? {
         switch key {
-        case "space":
-            return 49
-        case "right", "forward":
-            return 124
-        case "left", "back":
-            return 123
-        case "up":
-            return 126
-        case "down":
-            return 125
-        case "return", "enter":
-            return 36
-        case "escape":
-            return 53
-        case "tab":
-            return 48
-        case "backspace", "delete":
-            return 51
-        case "home":
-            return 115
-        case "end":
-            return 119
-        case "pageup":
-            return 116
-        case "pagedown":
-            return 121
-        default:
-            return alphaNumericKeyCode(for: key)
+        case "space":               return 49
+        case "right", "forward":   return 124
+        case "left", "back":       return 123
+        case "up":                  return 126
+        case "down":                return 125
+        case "return", "enter":     return 36
+        case "escape":              return 53
+        case "tab":                 return 48
+        case "backspace", "delete": return 51
+        default:                    return alphaNumericKeyCode(for: key)
         }
     }
 
     private func alphaNumericKeyCode(for key: String) -> CGKeyCode? {
         let keyCodes: [String: CGKeyCode] = [
-            "a": 0,
-            "s": 1,
-            "d": 2,
-            "f": 3,
-            "h": 4,
-            "g": 5,
-            "z": 6,
-            "x": 7,
-            "c": 8,
-            "v": 9,
-            "b": 11,
-            "q": 12,
-            "w": 13,
-            "e": 14,
-            "r": 15,
-            "y": 16,
-            "t": 17,
-            "1": 18,
-            "2": 19,
-            "3": 20,
-            "4": 21,
-            "6": 22,
-            "5": 23,
-            "=": 24,
-            "9": 25,
-            "7": 26,
-            "-": 27,
-            "8": 28,
-            "0": 29,
-            "]": 30,
-            "o": 31,
-            "u": 32,
-            "[": 33,
-            "i": 34,
-            "p": 35,
-            "l": 37,
-            "j": 38,
-            "'": 39,
-            "k": 40,
-            ";": 41,
-            "\\": 42,
-            ",": 43,
-            "/": 44,
-            "n": 45,
-            "m": 46,
-            ".": 47
+            "a": 0,  "s": 1,  "d": 2,  "f": 3,  "h": 4,
+            "g": 5,  "z": 6,  "x": 7,  "c": 8,  "v": 9,
+            "b": 11, "q": 12, "w": 13, "e": 14, "r": 15,
+            "y": 16, "t": 17, "1": 18, "2": 19, "3": 20,
+            "4": 21, "6": 22, "5": 23, "=": 24, "9": 25,
+            "7": 26, "-": 27, "8": 28, "0": 29, "]": 30,
+            "o": 31, "u": 32, "[": 33, "i": 34, "p": 35,
+            "l": 37, "j": 38, "'": 39, "k": 40, ";": 41,
+            "\\": 42, ",": 43, "/": 44, "n": 45, "m": 46, ".": 47
         ]
-
         return keyCodes[key]
     }
 }

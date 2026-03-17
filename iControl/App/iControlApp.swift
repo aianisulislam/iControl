@@ -3,83 +3,34 @@ import SwiftUI
 import CoreImage
 import ServiceManagement
 
-@MainActor
-final class AppController {
-    private let inputController = InputController()
-    private let server: HTTPServer
-
-    init() {
-        server = HTTPServer(port: 4040, inputController: inputController)
-    }
-
-    func start() {
-        server.start()
-    }
-
-    func quit() {
-        NSApplication.shared.terminate(nil)
-    }
-
-    func enableLaunchAtLogin() {
-        do {
-            try SMAppService.mainApp.register()
-        } catch {
-            print("Failed to register for launch at login: \(error)")
-        }
-    }
-
-    func disableLaunchAtLogin() {
-        do {
-            try SMAppService.mainApp.unregister()
-        } catch {
-            print("Failed to unregister for launch at login: \(error)")
-        }
-    }
-}
-
-final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let controller = AppController()
-
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        print("iControl: application did finish launching")
-        controller.start()
-        // Check launch at login status
-        let isEnabled = SMAppService.mainApp.status == .enabled
-        UserDefaults.standard.set(isEnabled, forKey: "launchAtLogin")
-    }
-
-    func enableLaunchAtLogin() {
-        controller.enableLaunchAtLogin()
-    }
-
-    func disableLaunchAtLogin() {
-        controller.disableLaunchAtLogin()
-    }
-
-    func quit() {
-        controller.quit()
-    }
-}
-
 @main
 struct iControlApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @State private var launchAtLogin: Bool = UserDefaults.standard.bool(forKey: "launchAtLogin")
+    private let server: HTTPServer
+    @AppStorage("launchAtLogin") private var launchAtLogin = false
+
+    init() {
+        // Sync saved config
+        _launchAtLogin = AppStorage(wrappedValue: SMAppService.mainApp.status == .enabled, "launchAtLogin")
+
+        // Start the web server
+        let inputController = InputController()
+        server = HTTPServer(port: 4040, inputController: inputController)
+        server.start()
+
+    }
 
     var body: some Scene {
         MenuBarExtra {
             VStack(alignment: .leading, spacing: 0) {
                 Text("Scan the QR code or open the URL on any device on the same network:")
-                      .font(.system(size: 12))
-                      .foregroundColor(.primary)
-                      .fixedSize(horizontal: false, vertical: true)
-                      .padding(.horizontal, 12)
-                      .padding(.top, 12)
-                      .padding(.bottom, 4)
-                      
-                // QR Code section
-                VStack(alignment: .center, spacing: 8) {
+                    .font(.system(size: 12))
+                    .foregroundColor(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 12)
+                    .padding(.bottom, 4)
 
+                VStack(alignment: .center, spacing: 8) {
                     if let qrImage = Self.generateQRCode(from: Self.controlURL()) {
                         Image(nsImage: qrImage)
                             .interpolation(.none)
@@ -98,14 +49,16 @@ struct iControlApp: App {
 
                 Divider()
 
-                // Open at login
                 Button(action: {
                     launchAtLogin.toggle()
-                    UserDefaults.standard.set(launchAtLogin, forKey: "launchAtLogin")
-                    if launchAtLogin {
-                        appDelegate.enableLaunchAtLogin()
-                    } else {
-                        appDelegate.disableLaunchAtLogin()
+                    do {
+                        if launchAtLogin {
+                            try SMAppService.mainApp.register()
+                        } else {
+                            try SMAppService.mainApp.unregister()
+                        }
+                    } catch {
+                        print("iControl: failed to update launch at login: \(error)")
                     }
                 }) {
                     HStack {
@@ -123,9 +76,8 @@ struct iControlApp: App {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
 
-                // Quit
                 Button("Quit") {
-                    appDelegate.quit()
+                    NSApplication.shared.terminate(nil)
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, 12)
@@ -154,14 +106,10 @@ struct iControlApp: App {
         filter.setValue(data, forKey: "inputMessage")
         filter.setValue("M", forKey: "inputCorrectionLevel")
 
-        guard let outputImage = filter.outputImage else {
-            return nil
-        }
+        guard let outputImage = filter.outputImage else { return nil }
 
-        let scale = CGAffineTransform(scaleX: 10, y: 10)
-        let scaledImage = outputImage.transformed(by: scale)
-
-        let rep = NSCIImageRep(ciImage: scaledImage)
+        let scaled = outputImage.transformed(by: CGAffineTransform(scaleX: 10, y: 10))
+        let rep = NSCIImageRep(ciImage: scaled)
         let nsImage = NSImage(size: rep.size)
         nsImage.addRepresentation(rep)
         return nsImage
