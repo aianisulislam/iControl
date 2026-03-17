@@ -1,4 +1,24 @@
-# iControl
+<h1 align="center">
+  <svg width="36px" height="36px" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+    <defs>
+      <linearGradient
+        id="g1"
+        x2="1"
+        gradientUnits="userSpaceOnUse"
+        gradientTransform="matrix(0,764.852,-574.752,0,512.376,130)"
+      >
+        <stop offset="0" stop-color="#7e94b8" />
+        <stop offset=".54" stop-color="#3c5789" />
+        <stop offset="1" stop-color="#071b47" />
+      </linearGradient>
+    </defs>
+    <path
+      fill="url(#g1)"
+      d="m797.82 681.96l-16.15 150.85c-9.35 39.1-49.72 62.04-96.46 62.04h-237.54c-16.15 0-31.45-1.7-40.37-12.75l-106.24-168.27c-13.59-16.57-11.04-38.67 5.53-52.69 21.25-18.28 56.52-15.73 73.94 5.52l40.79 49.72v-356.1c0-22.95 22.1-41.65 49.29-41.65 34.85 0 49.3 26.78 49.3 41.65l0.42 211.62 212.05 16.57c47.17 13.6 75.21 51.84 65.44 93.49zm-523.95-237.54c-26.77 0-48.87-19.13-48.87-42.07v-52.27c0-293.63 491.23-293.63 491.23 0v52.27c0 22.94-22.1 42.07-49.29 42.07-27.2 0-48.87-19.13-48.87-42.07v-52.27c0-167.85-294.91-167.85-294.91 0v52.27c0 22.94-22.1 42.07-49.29 42.07z"
+    />
+  </svg>
+  iControl
+</h1>
 
 iControl is a wireless trackpad, keyboard and media remote for your Mac. No app to install — open a URL on your phone, it works.
 
