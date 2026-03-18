@@ -48,6 +48,17 @@
       * {
         box-sizing: border-box;
         -webkit-tap-highlight-color: transparent;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        touch-action: manipulation;
+      }
+
+      textarea,
+      input {
+        user-select: text;
+        -webkit-user-select: text;
+        touch-action: auto;
       }
 
       body {
@@ -188,6 +199,19 @@
         height: calc(100% - 60px);
         margin-bottom: 0.75rem;
         user-select: none;
+        touch-action: none;
+      }
+
+      #cursorPad {
+        touch-action: none;
+      }
+
+      #touchpad.drag-mode {
+        background: rgba(180, 100, 255, 0.08);
+      }
+
+      #cursorPad.select-mode {
+        background: rgba(100, 150, 255, 0.2) !important;
       }
 
       #touchpad-buttons {
@@ -1412,6 +1436,8 @@
       </div>
     </aside>
     <script>
+      window.addEventListener("contextmenu", (e) => e.preventDefault());
+
       const status = document.getElementById("reconnect");
       let socket;
       let modifiers = {
@@ -1731,8 +1757,16 @@
       const HORIZONTAL_STEP_SIZE = 6;
       const VERTICAL_STEP_SIZE = 16;
 
+      let isCursorSelecting = false;
+      let cursorHoldTimer = null;
+      const CURSOR_HOLD_DURATION = 350;
+
       const onTouchMove = (e) => {
         e.stopPropagation();
+        if (cursorHoldTimer) {
+          clearTimeout(cursorHoldTimer);
+          cursorHoldTimer = null;
+        }
         const t = e.touches[0];
 
         const x = t.clientX;
@@ -1758,17 +1792,35 @@
           } else {
             direction = dy > 0 ? "down" : "up";
           }
-          send({ type: "key", key: direction });
+          send({ type: "key", key: isCursorSelecting ? `shift+${direction}` : direction });
           textCursorLastX = x;
           textCursorLastY = y;
         }
       };
 
       const resetTouch = () => {
+        if (cursorHoldTimer) {
+          clearTimeout(cursorHoldTimer);
+          cursorHoldTimer = null;
+        }
+        isCursorSelecting = false;
+        cursorPad.classList.remove("select-mode");
         textCursorLastX = null;
         textCursorLastY = null;
       };
       const cursorPad = document.getElementById("cursorPad");
+      cursorPad.addEventListener("touchstart", (e) => {
+        e.stopPropagation();
+        isCursorSelecting = false;
+        textCursorLastX = null;
+        textCursorLastY = null;
+        if (cursorHoldTimer) clearTimeout(cursorHoldTimer);
+        cursorHoldTimer = setTimeout(() => {
+          cursorHoldTimer = null;
+          isCursorSelecting = true;
+          cursorPad.classList.add("select-mode");
+        }, CURSOR_HOLD_DURATION);
+      }, { passive: true });
       cursorPad.addEventListener("touchmove", onTouchMove, { passive: true });
       cursorPad.addEventListener("touchend", resetTouch);
       cursorPad.addEventListener("touchcancel", resetTouch);
@@ -1792,6 +1844,10 @@
         let tapCount = 0;
         let lastTapTime = 0;
         let tapTimeout = null;
+        let isDragging = false;
+        let holdTimer = null;
+        const HOLD_DURATION = 350;
+        const DRAG_CANCEL_THRESHOLD = 8;
 
         element.addEventListener(
           "touchstart",
@@ -1803,6 +1859,14 @@
             }));
             lastPoint = startTouches[0] || null;
             moved = false;
+            isDragging = false;
+            if (holdTimer) clearTimeout(holdTimer);
+            holdTimer = setTimeout(() => {
+              holdTimer = null;
+              isDragging = true;
+              element.classList.add("drag-mode");
+              send({ type: "mouseDown", button: "left" });
+            }, HOLD_DURATION);
           },
           { passive: false },
         );
@@ -1818,9 +1882,17 @@
 
             if (touches.length === 1) {
               const point = { x: touches[0].clientX, y: touches[0].clientY };
+              if (holdTimer && startTouches.length) {
+                const tdx = Math.abs(point.x - startTouches[0].x);
+                const tdy = Math.abs(point.y - startTouches[0].y);
+                if (tdx > DRAG_CANCEL_THRESHOLD || tdy > DRAG_CANCEL_THRESHOLD) {
+                  clearTimeout(holdTimer);
+                  holdTimer = null;
+                }
+              }
               if (lastPoint) {
                 send({
-                  type: moveType,
+                  type: isDragging ? "dragMove" : moveType,
                   dx: (point.x - lastPoint.x) * touchpadSensitivity,
                   dy: (point.y - lastPoint.y) * touchpadSensitivity,
                 });
@@ -1853,6 +1925,18 @@
           "touchend",
           (event) => {
             event.preventDefault();
+            if (holdTimer) {
+              clearTimeout(holdTimer);
+              holdTimer = null;
+            }
+            if (isDragging) {
+              isDragging = false;
+              element.classList.remove("drag-mode");
+              send({ type: "mouseUp", button: "left" });
+              startTouches = [];
+              lastPoint = null;
+              return;
+            }
             if (
               !moved &&
               startTouches.length === 1 &&

@@ -76,6 +76,32 @@ final class InputController {
         postClick(button: button, clickState: 3, source: source, point: point)
     }
 
+    func mouseDown(button: String) {
+        let (mouseButton, downType, _) = mouseButtonEventTypes(for: button)
+        let event = CGEvent(mouseEventSource: CGEventSource(stateID: .hidSystemState), mouseType: downType, mouseCursorPosition: lastKnownPosition, mouseButton: mouseButton)
+        event?.post(tap: .cghidEventTap)
+    }
+
+    func mouseUp(button: String) {
+        let (mouseButton, _, upType) = mouseButtonEventTypes(for: button)
+        let event = CGEvent(mouseEventSource: CGEventSource(stateID: .hidSystemState), mouseType: upType, mouseCursorPosition: lastKnownPosition, mouseButton: mouseButton)
+        event?.post(tap: .cghidEventTap)
+    }
+
+    func dragMouse(dx: Double, dy: Double) {
+        let now = Date()
+        if now.timeIntervalSince(lastMoveTime) > 1 {
+            lastKnownPosition = CGEvent(source: nil)?.location ?? lastKnownPosition
+        }
+        let nextPoint = CGPoint(x: lastKnownPosition.x + dx, y: lastKnownPosition.y + dy)
+        let event = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDragged, mouseCursorPosition: nextPoint, mouseButton: .left)
+        event?.setIntegerValueField(.mouseEventDeltaX, value: Int64(dx.rounded()))
+        event?.setIntegerValueField(.mouseEventDeltaY, value: Int64(dy.rounded()))
+        event?.post(tap: .cghidEventTap)
+        lastKnownPosition = nextPoint
+        lastMoveTime = now
+    }
+
     func pressKey(key: String) {
         if let keyPress = keyPress(for: key) {
             postKeyPress(keyPress)
@@ -169,6 +195,14 @@ final class InputController {
         else { return }
 
         NSWorkspace.shared.open(url)
+    }
+
+    private func mouseButtonEventTypes(for button: String) -> (CGMouseButton, CGEventType, CGEventType) {
+        switch button {
+        case "right":  return (.right, .rightMouseDown, .rightMouseUp)
+        case "middle": return (.center, .otherMouseDown, .otherMouseUp)
+        default:       return (.left, .leftMouseDown, .leftMouseUp)
+        }
     }
 
     private func postClick(button: String, clickState: Int64) {

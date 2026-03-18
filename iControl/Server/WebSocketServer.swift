@@ -123,6 +123,12 @@ final class WebSocketServer {
             inputController.doubleClick(button: command.button ?? "left")
         case "tripleClick":
             inputController.tripleClick(button: command.button ?? "left")
+        case "mouseDown":
+            inputController.mouseDown(button: command.button ?? "left")
+        case "mouseUp":
+            inputController.mouseUp(button: command.button ?? "left")
+        case "dragMove":
+            inputController.dragMouse(dx: command.dx ?? 0, dy: command.dy ?? 0)
         case "move":
             inputController.moveMouse(dx: command.dx ?? 0, dy: command.dy ?? 0)
         case "scroll":
