@@ -50,17 +50,20 @@
         margin: 0;
         height: 100dvh;
         overscroll-behavior: none;
+        overflow: hidden;
         padding: 1rem;
         display: flex;
         flex-direction: column;
         gap: var(--gap);
+        position: relative;
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
         background:
-          radial-gradient(
-            circle at top,
-            rgba(5, 2, 59, 0.6),
-            transparent 38%
-          ),
+          radial-gradient(circle at top, rgba(5, 2, 59, 0.6), transparent 38%),
           linear-gradient(180deg, var(--color-bg), #020617);
+      }
+
+      body.drawer-open{
+        transform: translateX(min(20rem, 88vw));
       }
 
       header,
@@ -80,22 +83,48 @@
       header {
         display: flex;
         justify-content: space-between;
+        align-items: center;
+      }
+
+      .header-button {
+        width: 36px;
+        height: 36px;
       }
 
       h1 {
         margin: 0;
+        font-size: 1.4rem;
+        line-height: 1;
+        font-weight: 500;
       }
 
-      #header-button-wrapper {
-        display: flex;
-        gap: 12px;
-      }
-
-      #header-button-wrapper > button {
-        width: 48px;
-        height: 48px;
-        display: flex;
+      .connection-status {
+        background-color: color-mix(in srgb, currentColor 20%, transparent);
+        line-height: 0.6;
+        height: 24px;
+        aspect-ratio: 1;
         border-radius: 50%;
+      }
+
+      .status-text {
+        position: absolute;
+        top: 24px;
+        right: 0;
+        border-radius: 12px 0 0 12px;
+        border: 1px solid currentColor;
+        border-right-width: 0;
+        height: 20px;
+        padding: 6px 6px;
+        font-size: 12px;
+        line-height: 0.5;
+        background-color: color-mix(in srgb, currentColor 20%, transparent);
+      }
+      
+      .dot {
+        height: 6px;
+        aspect-ratio: 1;
+        border-radius: 3px;
+        background-color: currentColor;
       }
 
       p {
@@ -104,7 +133,7 @@
 
       .flex {
         display: flex;
-        justify-content: space-between;
+        justify-content: center;
         align-items: center;
       }
 
@@ -117,11 +146,7 @@
         backdrop-filter: blur(10px);
       }
       .tab-title-wrapper {
-        display: flex;
-        gap: 0;
         margin-bottom: 0.75rem;
-        justify-content: center;
-        align-items: center;
         max-width: 100%;
         overflow: hidden;
       }
@@ -271,9 +296,6 @@
         border-radius: 50%;
         background: transparent;
         border: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
         cursor: pointer;
         transition: all 0.2s ease;
         color: var(--color-text);
@@ -406,19 +428,17 @@
       #settings-drawer {
         position: fixed;
         top: 0;
-        right: 0;
+        left: 0;
         height: 100dvh;
         width: min(20rem, 88vw);
-        background: var(--color-bg);
-        border-left: 1px solid var(--color-border);
+        background:
+          radial-gradient(circle at top, rgba(5, 2, 59, 0.6), transparent 38%),
+          linear-gradient(180deg, var(--color-bg), #020617);
+        border-right: 1px solid var(--color-border);
         z-index: 101;
-        transform: translateX(100%);
-        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: translateX(-100%);
         overflow-y: auto;
         padding: var(--padding);
-      }
-      #settings-drawer.open {
-        transform: translateX(0);
       }
 
       #drawer-header {
@@ -480,88 +500,38 @@
   </head>
   <body>
     <header>
-      <h1>
+      <div>
+        <div class="header-button flex" id="settings" title="Settings">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 48 48"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect x="6" y="10" width="36" height="4" rx="2" fill="currentColor" />
+            <rect x="6" y="22" width="36" height="4" rx="2" fill="currentColor" />
+            <rect x="6" y="34" width="36" height="4" rx="2" fill="currentColor" />
+          </svg>
+        </div>
+      </div>
+      <div style="display: flex">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 18 18"
-          width="28"
-          height="28"
+          width="20"
+          height="20"
         >
           <path
             d="m15.76 12.99l-0.38 3.55c-0.22 0.92-1.17 1.46-2.27 1.46h-5.59c-0.38 0-0.74-0.04-0.95-0.3l-2.5-3.96c-0.32-0.39-0.26-0.91 0.13-1.24 0.5-0.43 1.33-0.37 1.74 0.13l0.96 1.17v-8.38c0-0.54 0.52-0.98 1.16-0.98 0.82 0 1.16 0.63 1.16 0.98l0.01 4.98 4.99 0.39c1.11 0.32 1.77 1.22 1.54 2.2zm-12.33-5.59c-0.63 0-1.15-0.45-1.15-0.99v-1.23c0-6.91 11.56-6.91 11.56 0v1.23c0 0.54-0.52 0.99-1.16 0.99-0.64 0-1.15-0.45-1.15-0.99v-1.23c0-3.95-6.94-3.95-6.94 0v1.23c0 0.54-0.52 0.99-1.16 0.99z"
             fill="currentColor"
-            fill-opacity="0.85"
           />
         </svg>
-        iControl
-      </h1>
-      <div id="header-button-wrapper">
-        <button id="reconnect" title="Reconnect" class="icon">
-          <svg
-            id="connect-icon"
-            height="20"
-            width="20"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 21.619 15.3867"
-          >
-            <rect height="15.3867" opacity="0" width="21.619" x="0" y="0" />
-            <path
-              d="M1.44034 6.55078C1.61612 6.73828 1.89737 6.73828 2.08487 6.53906C4.34659 4.13672 7.31143 2.88281 10.6278 2.88281C13.9677 2.88281 16.9442 4.14844 19.206 6.55078C19.37 6.72656 19.6396 6.71484 19.8271 6.52734L21.1396 5.22656C21.3036 5.05078 21.2919 4.83984 21.163 4.67578C19.0067 2.00391 14.9403 0.0117188 10.6278 0.0117188C6.32706 0.0117188 2.26065 2.00391 0.0926816 4.67578C-0.0362246 4.83984-0.0362246 5.05078 0.127838 5.22656Z"
-              fill="currentColor"
-              fill-opacity="0.85"
-            />
-            <path
-              d="M5.24893 10.3828C5.44815 10.5938 5.71768 10.5586 5.9169 10.3477C6.99503 9.12891 8.77628 8.23828 10.6278 8.25C12.5028 8.23828 14.2724 9.16406 15.3857 10.3828C15.5614 10.582 15.8075 10.5703 16.0185 10.3711L17.4833 8.92969C17.6357 8.77734 17.6474 8.55469 17.5185 8.37891C16.1122 6.67969 13.5458 5.36719 10.6278 5.36719C7.70987 5.36719 5.14346 6.67969 3.74893 8.37891C3.60831 8.55469 3.60831 8.75391 3.78409 8.92969Z"
-              fill="currentColor"
-              fill-opacity="0.85"
-            />
-            <path
-              d="M10.6278 15.3867C10.8505 15.3867 11.0263 15.293 11.4013 14.9297L13.663 12.7617C13.8036 12.6211 13.8388 12.3867 13.7099 12.2227C13.0888 11.4258 11.9521 10.7344 10.6278 10.7344C9.25674 10.7344 8.12003 11.4609 7.51065 12.293C7.4169 12.4336 7.46378 12.6211 7.61612 12.7617L9.8544 14.9297C10.2294 15.2812 10.4169 15.3867 10.6278 15.3867Z"
-              fill="currentColor"
-              fill-opacity="0.85"
-            />
-          </svg>
-        </button>
-        <button id="settings" title="Settings" class="icon">
-          <svg
-            height="20"
-            width="20"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 19.043 15.8086"
-          >
-            <rect height="15.8086" opacity="0" width="19.043" x="0" y="0" />
-            <path
-              d="M10.2422 13.5117C10.2422 13.8097 10.2994 14.0947 10.4051 14.3555L0.84375 14.3555C0.375 14.3555 0 13.9922 0 13.5117C0 13.043 0.375 12.668 0.84375 12.668L10.4075 12.668C10.3003 12.929 10.2422 13.2141 10.2422 13.5117ZM18.6914 13.5117C18.6914 13.9922 18.3164 14.3555 17.8828 14.3555L14.673 14.3555C14.7788 14.0947 14.8359 13.8097 14.8359 13.5117C14.8359 13.2141 14.7778 12.929 14.6707 12.668L17.8828 12.668C18.3164 12.668 18.6914 13.043 18.6914 13.5117Z"
-              fill="currentColor"
-              fill-opacity="0.85"
-            />
-            <path
-              d="M14.8359 13.5117C14.8359 14.7773 13.8047 15.8086 12.5391 15.8086C11.2734 15.8086 10.2422 14.7773 10.2422 13.5117C10.2422 12.2578 11.2734 11.2266 12.5391 11.2266C13.8047 11.2266 14.8359 12.2578 14.8359 13.5117ZM11.4961 13.5117C11.4961 14.0977 11.9531 14.5547 12.5391 14.5547C13.125 14.5547 13.582 14.0977 13.582 13.5117C13.582 12.9258 13.125 12.4688 12.5391 12.4688C11.9531 12.4688 11.4961 12.9258 11.4961 13.5117Z"
-              fill="currentColor"
-              fill-opacity="0.85"
-            />
-            <path
-              d="M4.04419 7.06641C3.93702 7.32739 3.87891 7.6125 3.87891 7.91016C3.87891 8.20816 3.93608 8.49316 4.0418 8.75391L0.84375 8.75391C0.375 8.75391 0 8.39062 0 7.91016C0 7.44141 0.375 7.06641 0.84375 7.06641ZM18.6914 7.91016C18.6914 8.39062 18.3164 8.75391 17.8828 8.75391L8.30976 8.75391C8.41548 8.49316 8.47266 8.20816 8.47266 7.91016C8.47266 7.6125 8.41454 7.32739 8.30737 7.06641L17.8828 7.06641C18.3164 7.06641 18.6914 7.44141 18.6914 7.91016Z"
-              fill="currentColor"
-              fill-opacity="0.85"
-            />
-            <path
-              d="M8.47266 7.91016C8.47266 9.17578 7.44141 10.207 6.17578 10.207C4.91016 10.207 3.87891 9.17578 3.87891 7.91016C3.87891 6.65625 4.91016 5.625 6.17578 5.625C7.44141 5.625 8.47266 6.65625 8.47266 7.91016ZM5.13281 7.91016C5.13281 8.49609 5.58984 8.95312 6.17578 8.95312C6.76172 8.95312 7.21875 8.49609 7.21875 7.91016C7.21875 7.32422 6.76172 6.86719 6.17578 6.86719C5.58984 6.86719 5.13281 7.32422 5.13281 7.91016Z"
-              fill="currentColor"
-              fill-opacity="0.85"
-            />
-            <path
-              d="M10.2422 2.30859C10.2422 2.60659 10.2994 2.8916 10.4051 3.15234L0.84375 3.15234C0.375 3.15234 0 2.77734 0 2.30859C0 1.83984 0.375 1.46484 0.84375 1.46484L10.4051 1.46484C10.2994 1.72559 10.2422 2.01059 10.2422 2.30859ZM18.6914 2.30859C18.6914 2.77734 18.3164 3.15234 17.8828 3.15234L14.673 3.15234C14.7788 2.8916 14.8359 2.60659 14.8359 2.30859C14.8359 2.01059 14.7788 1.72559 14.673 1.46484L17.8828 1.46484C18.3164 1.46484 18.6914 1.83984 18.6914 2.30859Z"
-              fill="currentColor"
-              fill-opacity="0.85"
-            />
-            <path
-              d="M12.5391 4.60547C13.8047 4.60547 14.8359 3.57422 14.8359 2.30859C14.8359 1.04297 13.8047 0.0117188 12.5391 0.0117188C11.2734 0.0117188 10.2422 1.04297 10.2422 2.30859C10.2422 3.57422 11.2734 4.60547 12.5391 4.60547ZM12.5391 3.35156C11.9531 3.35156 11.4961 2.88281 11.4961 2.30859C11.4961 1.71094 11.9531 1.26562 12.5391 1.26562C13.125 1.26562 13.582 1.71094 13.582 2.30859C13.582 2.88281 13.125 3.35156 12.5391 3.35156Z"
-              fill="currentColor"
-              fill-opacity="0.85"
-            />
-          </svg>
-        </button>
+        <h1>iControl</h1>
+      </div>
+      <div>
+        <div class="header-button flex" id="reconnect" title="Reconnect">
+          <div class="connection-status flex"><div class="dot"></div></div>
+        </div>
       </div>
     </header>
     <main>
@@ -574,7 +544,7 @@
         </div>
       </div>
       <section id="buttons-wrapper">
-        <div class="tab-title-wrapper">
+        <div class="tab-title-wrapper flex">
           <div class="tab-title">General</div>
           <div class="tab-title">Type</div>
           <div class="tab-title active">Media</div>
@@ -925,7 +895,7 @@
           </div>
           <div class="col-4" id="textModeToggle">
             <!-- <button id="textModeDirect">Direct</button> -->
-            <button id="textModeDraft" >Send</button>
+            <button id="textModeDraft">Send</button>
           </div>
         </div>
         <div id="media" class="tab flex active">
@@ -1032,11 +1002,7 @@
         </div>
         <div id="apps" class="tab grid grid-4">
           <button data-command='{"type":"app","app":"Finder"}'>
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 18.5859 18.2461"
-            >
+            <svg width="20" height="20" viewBox="0 0 18.5859 18.2461">
               <rect height="18.2461" opacity="0" width="18.5859" x="0" y="0" />
               <path
                 d="M11.1562 17.8008L11.1562 16.5586C10.6289 16.5586 10.1836 16.1953 10.1836 15.4453L10.1836 9.97266L8.17969 9.97266C7.85156 9.97266 7.67578 9.75 7.78125 9.42188L9.69141 2.58984C9.86719 1.95703 10.1367 1.69922 10.6641 1.69922L10.6875 0.269531C9.44531 0.269531 8.8125 0.832031 8.41406 2.26172L6.49219 8.90625C6.02344 10.5586 6.91406 11.332 8.03906 11.332L8.82422 11.332L8.82422 15.3398C8.82422 16.9102 9.59766 17.8008 11.1562 17.8008ZM4.76953 7.40625C5.08594 7.40625 5.34375 7.16016 5.34375 6.84375L5.34375 5.17969C5.34375 4.86328 5.08594 4.61719 4.76953 4.61719C4.45312 4.61719 4.20703 4.86328 4.20703 5.17969L4.20703 6.84375C4.20703 7.16016 4.45312 7.40625 4.76953 7.40625ZM12.9727 7.40625C13.2891 7.40625 13.5469 7.16016 13.5469 6.84375L13.5469 5.17969C13.5469 4.86328 13.2891 4.61719 12.9727 4.61719C12.6562 4.61719 12.4102 4.86328 12.4102 5.17969L12.4102 6.84375C12.4102 7.16016 12.6562 7.40625 12.9727 7.40625ZM9.10547 14.8711C11.0625 14.8711 13.0195 14.2734 14.1445 13.0664C14.4258 12.7734 14.3672 12.457 14.1914 12.2461C13.9805 12.0234 13.6172 11.9531 13.3125 12.2344C12.2227 13.2305 10.6758 13.7461 9.12891 13.7461C7.59375 13.7461 6.04688 13.2422 4.92188 12.2344C4.60547 11.9648 4.24219 12.0352 4.04297 12.2344C3.86719 12.4453 3.80859 12.7734 4.08984 13.0664C5.20312 14.2734 7.16016 14.8711 9.10547 14.8711ZM5.02734 18.2461L13.207 18.2461C14.8125 18.2461 16.0781 17.7656 16.9102 16.9336C17.7773 16.0898 18.2344 14.8242 18.2344 13.2188L18.2344 5.03906C18.2344 3.43359 17.7773 2.16797 16.9102 1.32422C16.0664 0.480469 14.8125 0.0117188 13.207 0.0117188L5.02734 0.0117188C3.42188 0.0117188 2.14453 0.492188 1.3125 1.32422C0.457031 2.16797 0 3.43359 0 5.03906L0 13.2188C0 14.8242 0.457031 16.0898 1.3125 16.9336C2.14453 17.7656 3.42188 18.2461 5.02734 18.2461ZM5.02734 16.5586C3.94922 16.5586 3.10547 16.2422 2.55469 15.7031C1.99219 15.1406 1.6875 14.2969 1.6875 13.2188L1.6875 5.03906C1.6875 3.96094 1.99219 3.11719 2.55469 2.55469C3.09375 2.02734 3.94922 1.69922 5.02734 1.69922L13.207 1.69922C14.2734 1.69922 15.1289 2.01562 15.668 2.55469C16.2422 3.11719 16.5352 3.96094 16.5352 5.03906L16.5352 13.2188C16.5352 14.2969 16.2422 15.1406 15.668 15.7031C15.1289 16.2305 14.2734 16.5586 13.207 16.5586Z"
@@ -1594,7 +1560,7 @@
     <div id="drawer-overlay"></div>
     <aside id="settings-drawer">
       <div id="drawer-header">
-        <h2 id="drawer-title">Settings</h2>
+        <h1 id="drawer-title">Settings</h1>
         <button id="drawer-close">
           <svg
             viewBox="0 0 19.2773 18.9258"
@@ -1651,8 +1617,8 @@
     </aside>
     <script>
       const params = new URLSearchParams(window.location.search);
-      const isPersonal = params.has('personal');
-      if(isPersonal) {
+      const isPersonal = params.has("personal");
+      if (isPersonal) {
         document.getElementById("apps").innerHTML = `        
           <button data-command='{"type":"app","app":"Safari"}'>
             <svg
@@ -1864,12 +1830,12 @@
             <input type="text" placeholder="App name, bundle id or URL" />
           </div>
           <button>Open</button>
-          `
+          `;
       }
     </script>
     <script>
-      const status = document.getElementById("connect-icon");
-      const socket = new WebSocket(`ws://${location.host}/`);
+      const status = document.getElementById("reconnect");
+      let socket;
       let modifiers = {
         shift: false,
         ctrl: false,
@@ -1889,28 +1855,75 @@
         localStorage.getItem("sens-cursorpad") ?? "1",
       );
 
-      const send = (payload) => {
-        console.log("Sending command:", payload);
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify(payload));
-        }
-      };
-
       /* ====================================
-       * Connection status handling
+       * Connection handling
        * ==================================== */
 
-      socket.addEventListener("open", () => {
-        status.style.color = "#22c55e";
-      });
+      let connectingPromise = null;
 
-      socket.addEventListener("close", () => {
-        status.style.color = "#f87171";
-      });
+      const connectWebSocket = () => {
+        if (connectingPromise) return connectingPromise;
+        const statusText = document.createElement("div");
+        statusText.classList.add("status-text");
+        statusText.innerText = "CONNECTING";
+        document.body.appendChild(statusText);
+        connectingPromise = new Promise((resolve, reject) => {
+          socket = new WebSocket(`ws://${location.host}/`);
 
-      socket.addEventListener("error", () => {
-        status.style.color = "#f87171";
-      });
+          socket.addEventListener("open", () => {
+            status.style.color = "#22c55e";
+            statusText.style.color = "#22c55e";
+            statusText.innerText = "CONNECTED";
+            setTimeout(()=> statusText.remove(), 1000);
+            connectingPromise = null;
+            resolve();
+          });
+
+          socket.addEventListener("close", () => {
+            status.style.color = "#f87171";
+            statusText.innerText = "NOT CONNECTED";
+            setTimeout(()=> statusText.remove(), 1000);
+            statusText.style.color = "#f87171";
+            connectingPromise = null;
+          });
+
+          socket.addEventListener("error", () => {
+            status.style.color = "#f87171";
+            statusText.style.color = "#f87171";
+            statusText.innerText = "NOT CONNECTED";
+            setTimeout(()=> statusText.remove(), 1000);
+            connectingPromise = null;
+            reject();
+          });
+        });
+
+        return connectingPromise;
+      };
+
+      connectWebSocket();
+      const checkAndReconnectWebSocket = () =>
+        socket?.readyState !== WebSocket.OPEN && connectWebSocket();
+      window.addEventListener(
+        "visibilitychange",
+        () =>
+          document.visibilityState === "visible" &&
+          checkAndReconnectWebSocket(),
+      );
+      const send = (payload) => {
+        console.log("Sending command:", payload);
+        const sendAction = () => socket.send(JSON.stringify(payload));
+        if (socket?.readyState === WebSocket.OPEN) {
+          try {
+            sendAction();
+          } catch (error) {
+            // Zombie OPEN scenario
+            socket?.close();
+            connectWebSocket().then(sendAction);
+          }
+        } else {
+          connectWebSocket().then(sendAction);
+        }
+      };
 
       /* ====================================
        * Incoming message handling
@@ -2086,7 +2099,7 @@
               .filter((mod) => modifiers[mod])
               .join("+");
             if (modifierPrefix) {
-              commandJSON.key = modifierPrefix + "+" + commandJSON.key
+              commandJSON.key = modifierPrefix + "+" + commandJSON.key;
             }
           }
           send(commandJSON);
@@ -2167,10 +2180,7 @@
           } else {
             direction = dy > 0 ? "down" : "up";
           }
-
           send({ type: "key", key: direction });
-
-          // update baseline so next movement can trigger again
           textCursorLastX = x;
           textCursorLastY = y;
         }
@@ -2190,8 +2200,8 @@
       /* ====================================
        * Initialize the reconnect button
        * ==================================== */
-      document.getElementById("reconnect").addEventListener("click", () => {
-        location.reload();
+      status.addEventListener("click", () => {
+        checkAndReconnectWebSocket();
       });
 
       /* ====================================
@@ -2309,11 +2319,11 @@
       const drawerOverlay = document.getElementById("drawer-overlay");
 
       function openDrawer() {
-        settingsDrawer.classList.add("open");
+        document.body.classList.add("drawer-open");
         drawerOverlay.classList.add("open");
       }
       function closeDrawer() {
-        settingsDrawer.classList.remove("open");
+        document.body.classList.remove("drawer-open");
         drawerOverlay.classList.remove("open");
       }
 
