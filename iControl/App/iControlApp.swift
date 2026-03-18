@@ -22,13 +22,23 @@ struct iControlApp: App {
     var body: some Scene {
         MenuBarExtra {
             VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text("iControl ")
+                        .font(.system(size: 13, weight: .bold))
+                    Text("v\(Self.appVersion)")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+                
                 Text("Scan the QR code or open the URL on any device on the same network:")
                     .font(.system(size: 12))
                     .foregroundColor(.primary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 12)
-                    .padding(.top, 12)
-                    .padding(.bottom, 4)
+                    .padding(.vertical, 4)
 
                 VStack(alignment: .center, spacing: 8) {
                     if let qrImage = Self.generateQRCode(from: Self.controlURL()) {
@@ -95,6 +105,10 @@ struct iControlApp: App {
         let hostname = Host.current().localizedName?
             .replacingOccurrences(of: " ", with: "-") ?? "localhost"
         return "http://\(hostname).local:4040"
+    }
+    
+    static var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
     }
 
     static func generateQRCode(from string: String) -> NSImage? {
