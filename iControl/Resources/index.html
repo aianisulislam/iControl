@@ -2053,6 +2053,11 @@
             .register("/sw.js")
             .catch((err) => console.error("SW registration failed:", err));
         });
+        navigator.serviceWorker.addEventListener("message", (event) => {
+          if (event.data?.type === "UPDATE_AVAILABLE") {
+            window.location.reload();
+          }
+        });
       }
     </script>
   </body>
