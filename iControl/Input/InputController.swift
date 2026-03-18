@@ -12,6 +12,10 @@ final class InputController {
     private var lastKnownPosition: CGPoint
     private var lastMoveTime: Date = .distantPast
 
+    private var currentPosition: CGPoint {
+        CGEvent(source: nil)?.location ?? lastKnownPosition
+    }
+
     init() {
         lastKnownPosition = CGEvent(source: nil)?.location ?? .zero
         startObservingVolumeChanges()
@@ -60,7 +64,7 @@ final class InputController {
 
     func doubleClick(button: String) {
         let source = CGEventSource(stateID: .hidSystemState)
-        let point = lastKnownPosition
+        let point = currentPosition
         postClick(button: button, clickState: 1, source: source, point: point)
         Thread.sleep(forTimeInterval: 0.05)
         postClick(button: button, clickState: 2, source: source, point: point)
@@ -68,7 +72,7 @@ final class InputController {
 
     func tripleClick(button: String) {
         let source = CGEventSource(stateID: .hidSystemState)
-        let point = lastKnownPosition
+        let point = currentPosition
         postClick(button: button, clickState: 1, source: source, point: point)
         Thread.sleep(forTimeInterval: 0.05)
         postClick(button: button, clickState: 2, source: source, point: point)
@@ -78,13 +82,13 @@ final class InputController {
 
     func mouseDown(button: String) {
         let (mouseButton, downType, _) = mouseButtonEventTypes(for: button)
-        let event = CGEvent(mouseEventSource: CGEventSource(stateID: .hidSystemState), mouseType: downType, mouseCursorPosition: lastKnownPosition, mouseButton: mouseButton)
+        let event = CGEvent(mouseEventSource: CGEventSource(stateID: .hidSystemState), mouseType: downType, mouseCursorPosition: currentPosition, mouseButton: mouseButton)
         event?.post(tap: .cghidEventTap)
     }
 
     func mouseUp(button: String) {
         let (mouseButton, _, upType) = mouseButtonEventTypes(for: button)
-        let event = CGEvent(mouseEventSource: CGEventSource(stateID: .hidSystemState), mouseType: upType, mouseCursorPosition: lastKnownPosition, mouseButton: mouseButton)
+        let event = CGEvent(mouseEventSource: CGEventSource(stateID: .hidSystemState), mouseType: upType, mouseCursorPosition: currentPosition, mouseButton: mouseButton)
         event?.post(tap: .cghidEventTap)
     }
 
@@ -206,7 +210,7 @@ final class InputController {
     }
 
     private func postClick(button: String, clickState: Int64) {
-        postClick(button: button, clickState: clickState, source: CGEventSource(stateID: .hidSystemState), point: lastKnownPosition)
+        postClick(button: button, clickState: clickState, source: CGEventSource(stateID: .hidSystemState), point: currentPosition)
     }
 
     private func postClick(button: String, clickState: Int64, source: CGEventSource?, point: CGPoint) {
