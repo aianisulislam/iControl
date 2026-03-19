@@ -1,8 +1,4 @@
-<h1>
-  <img src="./iControl/Resources/favicon.svg" height="40">
-  iControl
-</h1>
-
+#iControl
 **Control your Mac from any device. Instantly. No app. No account. No cloud.**
 
 Open a URL on your phone — you’re in.  
