@@ -1,5 +1,5 @@
 <h1>
-  <img src="./iControl/Resources/favicon.svg" height="34" style="vertical-align: middle;">
+  <img src="./iControl/Resources/favicon.svg" height="40" style="vertical-align: middle;">
   iControl
 </h1>
 
