@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import CoreImage
 import ServiceManagement
+import SystemConfiguration
 
 @main
 struct iControlApp: App {
@@ -41,7 +42,8 @@ struct iControlApp: App {
                     .padding(.vertical, 4)
 
                 VStack(alignment: .center, spacing: 8) {
-                    if let qrImage = Self.generateQRCode(from: Self.controlURL()) {
+                    let qrURL = Self.hostnameURL() ?? Self.ipURL() ?? "http://localhost:4040"
+                    if let qrImage = Self.generateQRCode(from: qrURL) {
                         Image(nsImage: qrImage)
                             .interpolation(.none)
                             .resizable()
@@ -49,9 +51,16 @@ struct iControlApp: App {
                             .frame(width: 160, height: 160)
                     }
 
-                    Text(Self.controlURL())
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+                    if let url = Self.hostnameURL() {
+                        Text(url)
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
+                    if let url = Self.ipURL() {
+                        Text(url)
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                    }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 12)
@@ -101,10 +110,45 @@ struct iControlApp: App {
         .menuBarExtraStyle(.window)
     }
 
-    static func controlURL() -> String {
-        let hostname = Host.current().localizedName?
-            .replacingOccurrences(of: " ", with: "-") ?? "localhost"
+    static func hostnameURL() -> String? {
+        guard let hostname = SCDynamicStoreCopyLocalHostName(nil) as String? else { return nil }
         return "http://\(hostname).local:4040"
+    }
+
+    static func ipURL() -> String? {
+        guard let ip = localIPAddress() else { return nil }
+        return "http://\(ip):4040"
+    }
+
+    private static func localIPAddress() -> String? {
+        var addr = sockaddr_in()
+        addr.sin_family = sa_family_t(AF_INET)
+        addr.sin_port = 80
+        addr.sin_addr.s_addr = inet_addr("8.8.8.8")
+
+        let sock = socket(AF_INET, SOCK_DGRAM, 0)
+        guard sock != -1 else { return nil }
+        defer { close(sock) }
+
+        let connected = withUnsafePointer(to: &addr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                connect(sock, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
+        }
+        guard connected == 0 else { return nil }
+
+        var local = sockaddr_in()
+        var len = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let named = withUnsafeMutablePointer(to: &local) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                getsockname(sock, $0, &len)
+            }
+        }
+        guard named == 0 else { return nil }
+
+        var buffer = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
+        inet_ntop(AF_INET, &local.sin_addr, &buffer, socklen_t(INET_ADDRSTRLEN))
+        return String(cString: buffer)
     }
     
     static var appVersion: String {
