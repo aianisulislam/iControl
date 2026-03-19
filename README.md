@@ -1,4 +1,4 @@
-#iControl
+# iControl
 **Control your Mac from any device. Instantly. No app. No account. No cloud.**
 
 Open a URL on your phone — you’re in.  
