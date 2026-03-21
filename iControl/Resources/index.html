@@ -92,15 +92,19 @@
         justify-content: space-between;
         align-items: center;
         inline-size: 100%;
+        pointer-events: none;
       }
-      body.vertical-rl header {
+      header > * {
+        pointer-events: auto;
+      }
+      header.mini {
         position: fixed;
       }
-      body.vertical-rl header > div:first-child {
+      header.mini > div:first-child {
         display: none;
       }
       main {
-        inline-size: min(34rem, 100%);
+        inline-size: min(42rem, 100%);
         flex: 1;
         display: flex;
         flex-direction: column;
@@ -172,7 +176,11 @@
         background: linear-gradient(180deg, rgba(25, 42, 96, 0.25), rgba(0, 0, 0, 0.25));
         border: 1px solid var(--color-border-accent);
         overflow: hidden;
-        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        container-type: size;
+        transition: all 0.3s ease-in-out;
       }
       #touchpad {
         flex: 1;
@@ -180,6 +188,7 @@
         user-select: none;
         touch-action: none;
       }
+
       #cursorPad {
         touch-action: none;
       }
@@ -190,15 +199,24 @@
         background: rgba(100, 150, 255, 0.2) !important;
       }
       #touchpad-buttons {
-        position: absolute;
-        inset-block-end: 0;
-        inset-inline-start: 0;
-        inset-inline-end: 0;
+        flex: 0 0 48px;
         display: flex;
         gap: 2px;
+        align-items: stretch;
+        transition: all 0.3s ease-in-out;
       }
+
+      @container (max-block-size: 82px) {
+        #touchpad {
+          flex: 0;
+          margin-block-end: 0;
+        }
+        #touchpad-buttons {
+          flex: 1
+        }
+      }
+
       #touchpad-buttons button {
-        block-size: 48px;
         border-radius: 0;
       }
       #touchpad-buttons > :first-child,
@@ -220,7 +238,7 @@
         background: var(--color-button);
         color: var(--color-text-muted);
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: inline-size 0.2s ease;
         font-size: 12px;
         position: relative;
       }
@@ -461,15 +479,21 @@
         inline-size: 100%;
         max-inline-size: 1920px;
         --key-width: calc(calc(min(100vi, 1920px) - 14px) / 14.5);
+        --key-height: 48px;
+        transition: all 0.3s ease-in-out;
+        overflow: hidden;
       }
       .keyboard > .row {
         display: flex;
         justify-content: center;
         gap: 1px;
       }
+      .keyboard.mini {
+        max-block-size: var(--key-height);
+      }
       .keyboard .key {
         inline-size: var(--key-width);
-        block-size: 48px;
+        block-size: var(--key-height);
         padding: 8px;
         border: none;
         border-radius: 2px;
@@ -563,9 +587,11 @@
           display: inline;
         }
       }
-      @media screen and (min-width: 768px) {
+      @media screen and (min-width: 820px) {
+        .keyboard {
+          --key-height: 72px
+        }
         .keyboard .key {
-          block-size: 72px;
           font-size: 16px;
           border-radius: 12px;
           border: 1px solid #020617;
@@ -587,8 +613,10 @@
         }
       }
       @media screen and (min-width: 1280px) {
+        .keyboard {
+          --key-height: 84px
+        }
         .keyboard .key {
-          block-size: 84px;
           font-size: 18px;
           border-radius: 16px;
           border: 2px solid #020617;
@@ -1600,7 +1628,7 @@
     </main>
     <aside class="keyboard hidden" id="keyboard">
       <div class="row fn">
-        <button class="key one-and-half label left">esc</button>
+        <button class="key label left fluid">esc</button>
         <button class="key dual">
           <span class="top">
             <svg style="inline-size: 16px; block-size: 20px;">
@@ -1704,7 +1732,7 @@
         </button>
       </div>
       <div class="row">
-        <button class="key dual" data-n="`" data-s="~">
+        <button class="key dual fluid" data-n="`" data-s="~">
           <span class="top">~</span>
           <span class="bottom">`</span>
         </button>
@@ -2246,19 +2274,42 @@
       const closeFullKeyboard = document.getElementById("closeFullKeyboard");
       const buttonsWrapper = document.getElementById("buttons-wrapper");
       const keyboard = document.getElementById("keyboard");
-      fullKeyboard.addEventListener("click", () => {
+      function showFullKeyboard() {
         buttonsWrapper.classList.add("hidden");
         keyboard.classList.remove("hidden");
-        const aspectRatio = window.innerWidth / window.innerHeight;
-        if (aspectRatio < 1 && window.innerWidth < 768) {
-          document.body.classList.add("vertical-rl");
-        }
-      });
-      closeFullKeyboard.addEventListener("click", () => {
+        localStorage.setItem("layout", "keyboard");
+        reorganizeLayout();
+      }
+      function showButtonsWrapper() {
         keyboard.classList.add("hidden");
         buttonsWrapper.classList.remove("hidden");
-        document.body.classList.remove("vertical-rl");
-      });
+        localStorage.setItem("layout", "buttons");
+        reorganizeLayout();
+      }
+      const reorganizeLayout = () => {
+        const aspectRatio = window.innerWidth / window.innerHeight;
+        if (!keyboard.classList.contains("hidden") && aspectRatio < 1 && window.innerWidth < 768) {
+          document.body.classList.add("vertical-rl");
+        } else {
+          document.body.classList.remove("vertical-rl");
+        }
+
+        const touchpad = document.getElementById("touchpad-wrapper");
+        const header = document.getElementsByTagName("header")[0];
+        const headerClasslist = header.classList;
+        headerClasslist.remove("mini");
+        if (!keyboard.classList.contains("hidden") && (touchpad.clientHeight < 32 || (touchpad.clientHeight > 82 && touchpad.clientHeight < 150))) {
+          headerClasslist.add("mini");
+        }
+      }
+      
+      fullKeyboard.addEventListener("click", showFullKeyboard);
+      closeFullKeyboard.addEventListener("click", showButtonsWrapper);
+      if (localStorage.getItem("layout") === "keyboard") {
+        showFullKeyboard();
+      }
+
+      window.addEventListener("resize", reorganizeLayout);
 
       /* ====================================
        * Initialize the reconnect button

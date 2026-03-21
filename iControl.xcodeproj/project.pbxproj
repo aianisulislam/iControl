@@ -333,7 +333,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = "1.3.2-beta";
+				MARKETING_VERSION = "1.3.3-beta";
 				PRODUCT_BUNDLE_IDENTIFIER = dev.anis.iControl;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -367,7 +367,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = "1.3.2-beta";
+				MARKETING_VERSION = "1.3.3-beta";
 				PRODUCT_BUNDLE_IDENTIFIER = dev.anis.iControl;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
