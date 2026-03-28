@@ -139,14 +139,30 @@ Example:
 
 ## Security model
 
-- LAN-only server (no external access)  
-- No cloud, no telemetry, no accounts  
-- Whitelisted command set  
-- One-way communication  
+- LAN-only server (no external access)
+- No cloud, no telemetry, no accounts
+- Whitelisted command set
+- One-way communication
 
 > The client sends commands. The Mac executes them. That's it.
 
 No files, no screen data, no system state exposed.
+
+### Connection security
+
+iControl ships with two security modes, configurable from the menu bar under **Connection Security**.
+
+**Secure (default)**
+Every device must authenticate before any input is accepted. There are two paths in:
+
+- **Token** — the QR code and URLs shown in the menu bar already contain the token (e.g. `?token=QE7T`). Scan the QR code and you're in automatically. The token is saved in the browser and reused silently on reconnect.
+- **Request Access** — devices without the token can tap **Request Access** on the auth screen. A dialog appears on your Mac asking you to Allow or Deny. Approved devices receive a one-time session token valid for the life of that browser tab. Denied devices are locked out for the remainder of that tab session.
+
+**Open**
+No authentication. Any device on the network connects immediately. Switching to Open requires Touch ID or your Mac password. Switching back to Secure automatically generates a new token and invalidates all prior sessions.
+
+**Regenerate Token** (menu bar, Secure mode only)
+Issues a new token and clears all approved sessions. Use this to revoke access from all previously connected devices at once.
 
 ---
 
@@ -162,12 +178,6 @@ iControl simulates input via macOS user-space APIs (`CGEvent`). Some system beha
 These are platform constraints, not bugs. They affect all software-based input simulation tools, not just iControl.
 
 ---
-
-## Authentication (upcoming)
-
-- Open (trusted networks)  
-- Accept-once (pairing)  
-- Password-protected  
 
 ---
 

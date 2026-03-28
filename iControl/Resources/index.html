@@ -2093,7 +2093,8 @@
       };
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-      const playKeyClick = () => {
+      const inputFeedback = () => {
+        navigator?.vibrate(15)
         if (audioCtx.state === "suspended") audioCtx.resume();
         const now = audioCtx.currentTime;
         const osc = audioCtx.createOscillator();
@@ -2209,7 +2210,7 @@
       const send = (payload) => {
         console.log("Sending command:", payload);
         const sendAction = () => {
-          if (!["move", "dragMove", "scroll"].includes(payload.type)) playKeyClick();
+          if (!["move", "dragMove", "scroll"].includes(payload.type)) inputFeedback();
           socket.send(JSON.stringify(payload));
         };
         if (socket?.readyState === WebSocket.OPEN) {
@@ -2298,7 +2299,7 @@
        * ==================================== */
       document.querySelectorAll("[data-modifier]").forEach((button) => {
         button.addEventListener("click", () => {
-          playKeyClick();
+          inputFeedback();
           const mod = button.dataset.modifier;
           modifiers[mod] = !modifiers[mod];
           button.classList.toggle("active", modifiers[mod]);
@@ -2531,7 +2532,7 @@
             holdTimer = setTimeout(() => {
               if (!hasMoved || !cancelTapOnMove) {
                 isHeld = true;
-                playKeyClick();
+                inputFeedback();
                 if (detectDrag) {
                   isDragging = true;
                   emit("dragStart", {
@@ -2914,7 +2915,7 @@
 
         // ── Modifier ────────────────────────────────────────────────────────────
         if (kbModifier) {
-          playKeyClick();
+          inputFeedback();
           switch (kbModifier) {
             case "shift":
               kb.shift = !kb.shift;
