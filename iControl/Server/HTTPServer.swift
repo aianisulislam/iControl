@@ -5,14 +5,16 @@ import CryptoKit
 final class HTTPServer {
     private let port: UInt16
     private let inputController: InputController
+    private let authContext: AuthContext
     private let queue = DispatchQueue(label: "iControl.HTTPServer")
     private var listener: NWListener?
     private var clients: [ObjectIdentifier: ClientConnection] = [:]
     private var webSockets: [ObjectIdentifier: WebSocketServer] = [:]
 
-    init(port: UInt16, inputController: InputController) {
+    init(port: UInt16, inputController: InputController, authContext: AuthContext) {
         self.port = port
         self.inputController = inputController
+        self.authContext = authContext
         self.inputController.onVolumeChanged = { [weak self] volume in
             self?.broadcastVolume(volume)
         }
@@ -237,7 +239,7 @@ final class HTTPServer {
             }
 
             print("iControl: WebSocket upgrade succeeded")
-            let socket = WebSocketServer(connection: client.connection, inputController: self.inputController)
+            let socket = WebSocketServer(connection: client.connection, inputController: self.inputController, authContext: self.authContext)
             self.webSockets[connectionID] = socket
             socket.start()
         })

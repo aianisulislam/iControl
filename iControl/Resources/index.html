@@ -673,6 +673,69 @@
           font-size: 16px;
         }
       }
+      /* ── Auth Modal ── */
+      #auth-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        background: rgba(0, 0, 0, 0.75);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(4px);
+      }
+      #auth-modal-inner {
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        backdrop-filter: blur(20px);
+        padding: 1rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.25rem;
+        min-inline-size: 320px;
+      }
+      #auth-modal-inner p {
+        font-size: 0.95rem;
+        color: var(--color-text-muted);
+        text-align: center;
+        letter-spacing: 0.04em;
+        margin: 0;
+      }
+      #auth-token-input {
+        width: auto;
+        height: auto;
+        font-size: 2.2rem;
+        font-weight: 700;
+        text-align: center;
+        text-transform: uppercase;
+        padding: 0.5rem 1rem;
+        background: var(--color-button);
+        border: 1px solid var(--color-border-accent);
+        border-radius: var(--radius);
+        color: var(--color-text);
+        max-inline-size: 120px;
+        font-family: monospace;
+        inline-size: auto;
+        block-size: auto;
+      }
+      #auth-submit {
+        padding: 0.7rem 2rem;
+        font-size: 1rem;
+        font-weight: 700;
+        background: var(--color-button-active);
+        color: var(--color-text);
+        border-radius: var(--radius);
+      }
+      #auth-request {
+        padding:  0.7rem 2rem;
+        font-size: 0.8rem;
+        font-weight: 500;
+        background: transparent;
+        color: var(--color-text-muted);
+        border: 1px solid var(--color-border-accent);
+      }
     </style>
   </head>
   <body>
@@ -1965,8 +2028,69 @@
         <input type="range" id="sensitivity-cursorpad" min="0.25" max="4" step="0.25" value="1" />
       </div>
     </aside>
+    <div id="auth-modal" class="hidden">
+      <div id="auth-modal-inner">
+        <p>Enter access token</p>
+        <input
+          id="auth-token-input"
+          type="text"
+          maxlength="4"
+          minlength="4"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="characters"
+          spellcheck="false"
+        />
+        <button id="auth-submit">Connect</button>
+        <button id="auth-request">Request Access</button>
+      </div>
+    </div>
     <script>
       window.addEventListener("contextmenu", (e) => e.preventDefault());
+      /* ── Auth: strip token from URL and store in localStorage ── */
+      (function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlToken = urlParams.get("token");
+        if (urlToken) {
+          localStorage.setItem("icontrol-token", urlToken);
+          history.replaceState({}, "", window.location.pathname);
+        }
+      })();
+
+      const getDeviceName = () => {
+        const ua = navigator.userAgent;
+        if (/iPad/.test(ua)) return "iPad";
+        if (/iPhone/.test(ua)) return "iPhone";
+        if (/Android/.test(ua)) return "Android Device";
+        if (/Macintosh/.test(ua)) return "Mac";
+        if (/Windows/.test(ua)) return "Windows PC";
+        return "Unknown Device";
+      };
+
+      const showAuthModal = (denied = false) => {
+        const modal = document.getElementById("auth-modal");
+        const p = modal.querySelector("p");
+        const input = document.getElementById("auth-token-input");
+        const submitBtn = document.getElementById("auth-submit");
+        const requestBtn = document.getElementById("auth-request");
+        if (denied) {
+          p.textContent = "Connection denied by the host.";
+          input.classList.add("hidden");
+          submitBtn.classList.add("hidden");
+          requestBtn.classList.add("hidden");
+        } else {
+          p.textContent = "Enter access token";
+          input.classList.remove("hidden");
+          submitBtn.classList.remove("hidden");
+          requestBtn.textContent = "Request Access";
+        }
+        modal.classList.remove("hidden");
+        if (!denied) input.focus();
+      };
+
+      const hideAuthModal = () => {
+        document.getElementById("auth-modal").classList.add("hidden");
+      };
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
       const playKeyClick = () => {
@@ -2012,7 +2136,9 @@
        * ==================================== */
 
       let connectingPromise = null;
+      const isDenied = () => sessionStorage.getItem("icontrol-denied") === "1";
       const connectWebSocket = () => {
+        if (isDenied()) return Promise.resolve();
         if (connectingPromise) return connectingPromise;
         connectingPromise = new Promise((resolve, reject) => {
           socket = new WebSocket(`ws://${location.host}/`);
@@ -2021,6 +2147,11 @@
             status.style.color = "#22c55e";
             connectingPromise = null;
             resolve();
+            const token =
+              sessionStorage.getItem("icontrol-session") ||
+              localStorage.getItem("icontrol-token") ||
+              "";
+            socket.send(JSON.stringify({ type: "auth", token, device: getDeviceName() }));
           });
 
           socket.addEventListener("close", () => {
@@ -2051,6 +2182,19 @@
                   }
                 }
               }
+            } else if (payload.type === "auth:approved") {
+              sessionStorage.setItem("icontrol-session", payload.token);
+              hideAuthModal();
+            } else if (payload.type === "auth:rejected") {
+              if (payload.reason === "denied") {
+                sessionStorage.setItem("icontrol-denied", "1");
+                socket.close();
+                showAuthModal(true);
+              } else {
+                showAuthModal();
+              }
+            } else if (payload.type === "auth:open") {
+              hideAuthModal();
             }
           });
         });
@@ -2058,8 +2202,8 @@
         return connectingPromise;
       };
 
-      connectWebSocket();
-      const checkAndReconnectWebSocket = () => socket?.readyState !== WebSocket.OPEN && connectWebSocket();
+      if (isDenied()) { showAuthModal(true); } else { connectWebSocket(); }
+      const checkAndReconnectWebSocket = () => !isDenied() && socket?.readyState !== WebSocket.OPEN && connectWebSocket();
       window.addEventListener("visibilitychange", () => document.visibilityState === "visible" && checkAndReconnectWebSocket());
 
       const send = (payload) => {
@@ -2908,6 +3052,24 @@
           label.textContent = v + "x";
           localStorage.setItem(key, v);
         });
+      });
+
+      /* ── Auth modal submit ── */
+      document.getElementById("auth-submit").addEventListener("click", () => {
+        const enteredToken = document.getElementById("auth-token-input").value.toUpperCase();
+        if (enteredToken.length < 4) return;
+        localStorage.setItem("icontrol-token", enteredToken);
+        send({ type: "auth", token: enteredToken, device: getDeviceName() });
+      });
+
+      document.getElementById("auth-token-input").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          document.getElementById("auth-submit").click();
+        }
+      });
+
+      document.getElementById("auth-request").addEventListener("click", () => {
+        send({ type: "auth:request", device: getDeviceName() });
       });
     </script>
     <script>
