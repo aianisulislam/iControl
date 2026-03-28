@@ -1,157 +1,262 @@
 # iControl
+**Control your Mac from any device. Instantly. No app. No account. No cloud.**
 
-A zero-install LAN remote control for macOS. Open a URL on any device with a browser and control your Mac — no app, no account, no cloud.
+Open a URL on your phone — you're in.  
+Your device becomes a trackpad, keyboard, and control surface for macOS.
 
-[Website & download](https://aianisulislam.github.io/iControl/) · MIT License
+- **Zero install** — works on any device with a browser  
+- **LAN only** — physically cannot leave your network  
+- **Under 1MB** — server + client combined  
+- **No accounts, no telemetry** — nothing to track, nothing to leak  
+- **PWA-ready** — install to home screen, feels native  
+
+> Built out of spite for bloated remote apps that track you, lock features behind subscriptions, and solve a simple problem the hard way.
+
+---
+
+## What this is
+
+iControl turns any device into a **direct input peripheral for your Mac**.
+
+Not screen sharing.  
+Not remote desktop.  
+Not "control via cloud".
+
+> **Input goes in. Actions happen. Nothing comes back.**
+
+No file access.  
+No system inspection.  
+No hidden sync.
+
+---
+
+## Why
+
+Most remote control apps:
+
+- require installing apps on both devices  
+- rely on cloud relays  
+- track usage or gate features behind subscriptions  
+- feel laggy or unnatural  
+
+iControl does none of that.
+
+It runs entirely on your local network, uses a single WebSocket connection, and executes a small, explicit set of input commands.
+
+> **No middle layers. No abstraction leaks. Just input.**
 
 ---
 
 ## Architecture
-
 ```
-Browser (any device) ──WebSocket──▶ Swift HTTP/WS server ──▶ macOS APIs
-                                        port 4040
+Browser (any device) ──WebSocket──▶ Swift HTTP/WS server ──▶ macOS APIs port 4040
 ```
+- Native Swift menu bar app  
+- Serves a single self-contained `index.html`  
+- Persistent WebSocket for real-time input  
+- No REST, no polling, no dependencies  
 
-The server is a native Swift menu bar app with no external dependencies. It serves a single self-contained `index.html` and maintains a WebSocket connection for receiving commands. Commands are executed via:
+### macOS APIs used
 
 | Purpose | API |
 |---|---|
-| Mouse & keyboard input | `CGEvent` / HID pipeline |
+| Mouse & keyboard input | `CGEvent` (HID pipeline) |
 | App management | `NSWorkspace` |
 | Volume control | `CoreAudio` |
-| Launch at login | `ServiceManagement` (`SMAppService`) |
-
-Communication is one-way — the Mac executes commands and never sends sensitive data back to the client (only connection state and volume level).
+| Launch at login | `SMAppService` |
 
 ---
 
-## Project structure
+## What you can do
 
+### Touchpad
+- Native cursor acceleration (HID-level)  
+- Click, right-click, middle-click  
+- Drag and scroll  
+- Adjustable sensitivity  
+
+### Keyboard
+- Full key support with modifiers  
+- Sticky modifiers (Cmd, Option, Shift, Ctrl)  
+- Shortcut-friendly (Cmd+Tab, Cmd+Space, Spotlight, etc.)  
+- F1–F12 with system actions (brightness, media, volume, Siri, screenshot)  
+
+#### Typing modes
+
+- **Compose**  
+  Use your phone's native keyboard — autocorrect, emoji, voice input, multilingual. Type and send.
+
+- **Passthrough**  
+  Full keyboard replica. Raw keystrokes sent in real-time — behaves like a physical keyboard attached to your Mac.
+
+---
+
+### System & media
+- Mission Control, App Exposé, Launchpad  
+- App switching, Spotlight  
+- Volume control (with system overlay)  
+- Media playback (iPod-style wheel UI)
+- Siri, Screenshot toolbar
+
+---
+
+### Apps & URLs
+- Launch or focus apps instantly  
+- Open URLs directly on your Mac  
+
+> Not integration. Just input sequences executed cleanly.
+
+---
+
+## Quick start
+
+1. Download and open `iControl.app`  
+2. Scan the QR code from the menu bar  
+3. Grant Accessibility permission  
+4. Done  
+
+Your Mac is now always ready.
+
+---
+
+## How it works
 ```
-iControl/
-├── iControl.xcodeproj/
-└── iControl/
-    ├── App/
-    │   └── iControlApp.swift      # App entry point, menu bar UI, QR code generation
-    ├── Input/
-    │   └── InputController.swift  # All input simulation (mouse, keyboard, media, volume)
-    ├── Server/
-    │   ├── HTTPServer.swift       # HTTP server — serves index.html on port 4040
-    │   └── WebSocketServer.swift  # WebSocket server — receives and dispatches commands
-    └── Resources/
-        ├── index.html             # Entire client UI (single file, no build step)
-        ├── manifest.json          # PWA manifest
-        ├── sw.js                  # Service worker for offline/PWA support
-        └── favicon*, *.png        # Icons
+Phone → WebSocket → iControl → macOS input system
 ```
+- Commands are JSON frames  
+- Validated and dispatched  
+- Executed via native APIs  
 
-No package managers, no build steps, no external dependencies — on either the client or the server side.
-
----
-
-## Building from source
-
-**Requirements:** Xcode 15+, macOS 13 SDK or later.
-
-```bash
-git clone https://github.com/aianisulislam/iControl
-cd iControl
-open iControl.xcodeproj
-```
-
-Build and run (`Cmd+R`) in Xcode. The app will appear in the menu bar. On first run, macOS will prompt for Accessibility permissions — required for input simulation.
-
-To build a release archive: **Product → Archive** in Xcode.
-
----
-
-## Key entry points
-
-### [iControlApp.swift](iControl/App/iControlApp.swift)
-App entry point and menu bar UI. Owns the `AppController`, which starts the `HTTPServer`. Also handles:
-- QR code generation from the local mDNS URL (`http://<hostname>.local:4040`)
-- Launch-at-login toggle via `SMAppService`
-
-The served URL is derived from `Host.current().localizedName` with spaces replaced by hyphens.
-
-### [HTTPServer.swift](iControl/Server/HTTPServer.swift)
-Listens on port 4040. Serves `index.html` for all HTTP requests and upgrades WebSocket connections.
-
-### [WebSocketServer.swift](iControl/Server/WebSocketServer.swift)
-Receives JSON command frames from the browser and dispatches them to `InputController`.
-
-### [InputController.swift](iControl/Input/InputController.swift)
-Implements all input simulation. Each command type maps to a macOS API call. This is where to add new input actions or modify existing behaviour.
-
-### [index.html](iControl/Resources/index.html)
-The entire client UI in one file — HTML, CSS, and JavaScript. No framework, no bundler. Edit directly; changes take effect on the next app build.
-
----
-
-## Customisation
-
-### Adding or changing input actions
-
-1. Add a new command type in the WebSocket message handler in [WebSocketServer.swift](iControl/Server/WebSocketServer.swift).
-2. Implement the action in [InputController.swift](iControl/Input/InputController.swift) using `CGEvent`, `NSWorkspace`, or the relevant macOS API.
-3. Trigger it from [index.html](iControl/Resources/index.html) by sending a matching JSON frame over the WebSocket.
-
-### WebSocket command format
-
-Commands are JSON objects sent as text frames:
-
+Example:
 ```json
-{ "type": "mouse", "dx": 10, "dy": -5 }
-{ "type": "key", "key": "space" }
+{ "type": "move", "dx": 10, "dy": -5 }
+{ "type": "kb", "key": "space", "flags": { "cmd": true } }
 { "type": "app", "app": "Finder" }
 { "type": "url", "url": "https://example.com" }
-{ "type": "volume", "level": 0.5 }
 ```
-
-See [WebSocketServer.swift](iControl/Server/WebSocketServer.swift) for the full list of handled types.
-
-### Customising the Apps tab
-
-The app grid in [index.html](iControl/Resources/index.html) is a list of buttons with `data-command` attributes:
-
-```html
-<!-- Launch or focus an app -->
-<button data-command='{"type":"app","app":"Finder"}'>Finder</button>
-
-<!-- Open a URL in the default browser -->
-<button data-command='{"type":"url","url":"https://example.com"}'>Example</button>
-```
-
-Edit the `apps` section in `index.html` to add, remove, or reorder entries. Apps can be referenced by display name or bundle ID.
-
-### Changing the port
-
-The port is hardcoded to `4040` in [iControlApp.swift](iControl/App/iControlApp.swift) (passed to `HTTPServer`) and in the URL construction in `controlURL()`. Change both if needed.
-
----
-
-## Permissions
-
-iControl requires **Accessibility access** to simulate input events. This is enforced by macOS for any app using `CGEvent` programmatically.
-
-**System Settings → Privacy & Security → Accessibility → enable iControl**
-
-No other permissions are required.
 
 ---
 
 ## Security model
 
-- Accepts connections from the local network only (LAN-bound server socket)
-- No cloud relay, no telemetry, no accounts
-- Whitelisted command set — only recognised command types are executed
-- One-way data flow — the client cannot read files or query system state
+- LAN-only server (no external access)
+- No cloud, no telemetry, no accounts
+- Whitelisted command set
+- One-way communication
 
-Auth modes (password / accept-once / open) are planned for a future release.
+> The client sends commands. The Mac executes them. That's it.
+
+No files, no screen data, no system state exposed.
+
+### Connection security
+
+iControl ships with two security modes, configurable from the menu bar under **Connection Security**.
+
+**Secure (default)**
+Every device must authenticate before any input is accepted. There are two paths in:
+
+- **Token** — the QR code and URLs shown in the menu bar already contain the token (e.g. `?token=QE7T`). Scan the QR code and you're in automatically. The token is saved in the browser and reused silently on reconnect.
+- **Request Access** — devices without the token can tap **Request Access** on the auth screen. A dialog appears on your Mac asking you to Allow or Deny. Approved devices receive a one-time session token valid for the life of that browser tab. Denied devices are locked out for the remainder of that tab session.
+
+**Open**
+No authentication. Any device on the network connects immediately. Switching to Open requires Touch ID or your Mac password. Switching back to Secure automatically generates a new token and invalidates all prior sessions.
+
+**Regenerate Token** (menu bar, Secure mode only)
+Issues a new token and clears all approved sessions. Use this to revoke access from all previously connected devices at once.
+
+---
+
+## Known limitations
+
+iControl simulates input via macOS user-space APIs (`CGEvent`). Some system behaviours require hardware-level HID input and cannot be replicated this way:
+
+- **Space switching** (Ctrl+Arrow) — intercepted by the Dock before user-space events reach it  
+- **Hot corners** — triggered by hardware cursor arrival at screen edges, not cursor position alone  
+- **Dock auto-hide** — same as hot corners  
+- **Password fields** — macOS blocks input simulation when secure input mode is active  
+
+These are platform constraints, not bugs. They affect all software-based input simulation tools, not just iControl.
+
+---
+
+---
+
+## Project structure
+```
+iControl/
+├── App/
+│   └── iControlApp.swift
+├── Input/
+│   └── InputController.swift
+├── Server/
+│   ├── HTTPServer.swift
+│   └── WebSocketServer.swift
+└── Resources/
+    ├── index.html
+    ├── manifest.json
+    ├── sw.js
+```
+- No package managers  
+- No build steps  
+- No external dependencies  
+
+> The entire project is readable in an afternoon.
+
+---
+
+## Customisation
+
+### Add new commands
+
+1. Handle in `WebSocketServer.swift`  
+2. Implement in `InputController.swift`  
+3. Trigger from `index.html`  
+
+---
+
+### Modify UI
+
+Edit `index.html` directly — no frameworks, no bundlers.
+
+---
+
+## Permissions
+
+Requires **Accessibility access**:
+
+System Settings → Privacy & Security → Accessibility
+
+This is required for any app simulating input via `CGEvent`.
+
+---
+
+## Philosophy
+
+iControl does one thing:
+
+> **Send input from your device to your Mac.**
+
+It does not:
+- read your files  
+- inspect your system  
+- sync your data  
+- phone home  
+- connect to internet
+
+Once downloaded, it exists entirely on your machine.
+
+> **You control your Mac.  
+You control your data.  
+You control the system.**
 
 ---
 
 ## License
 
-MIT — do whatever you want with it.
+MIT — do whatever you want.
+
+---
+
+## One line summary
+
+> **Your phone becomes a Mac input device. Instantly. No middleman.**

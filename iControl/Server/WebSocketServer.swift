@@ -1,5 +1,14 @@
+import AppKit
 import Foundation
 import Network
+
+
+struct KbFlags: Codable {
+    let shift: Bool?
+    let ctrl: Bool?
+    let opt: Bool?
+    let cmd: Bool?
+}
 
 struct RemoteCommand: Decodable {
     let type: String
@@ -11,6 +20,9 @@ struct RemoteCommand: Decodable {
     let app: String?
     let dx: Double?
     let dy: Double?
+    let flags: KbFlags?
+    let token: String?
+    let device: String?
 }
 
 enum CommandValue: Decodable {
@@ -43,16 +55,28 @@ enum CommandValue: Decodable {
     }
 }
 
+enum ConnectionAuthState {
+    case pending
+    case approved
+}
+
 final class WebSocketServer {
     private let connection: NWConnection
     private let inputController: InputController
+    private let authContext: AuthContext
+    private var authState: ConnectionAuthState = .pending
 
-    init(connection: NWConnection, inputController: InputController) {
+    init(connection: NWConnection, inputController: InputController, authContext: AuthContext) {
         self.connection = connection
         self.inputController = inputController
+        self.authContext = authContext
     }
 
     func start() {
+        if authContext.mode == "open" {
+            authState = .approved
+            sendMessage(#"{"type":"auth:open"}"#)
+        }
         sendInitialState()
         receiveFrame()
     }
@@ -97,17 +121,24 @@ final class WebSocketServer {
     }
 
     private func handleText(_ payload: Data) {
-        if let rawPayload = String(data: payload, encoding: .utf8) {
-            print("iControl: WebSocket payload received: \(rawPayload)")
-        } else {
-            print("iControl: WebSocket payload received (\(payload.count) bytes)")
-        }
-
         guard let command = try? JSONDecoder().decode(RemoteCommand.self, from: payload) else {
-            print("iControl: failed to decode WebSocket payload")
             return
         }
 
+        // Gate on auth state — only auth messages pass while pending
+        if authState == .pending {
+            switch command.type {
+            case "auth":
+                handleAuthMessage(command)
+            case "auth:request":
+                handleAuthRequest(command)
+            default:
+                break
+            }
+            return
+        }
+
+        // Approved: dispatch normal commands
         switch command.type {
         case "key":
             if let key = command.key {
@@ -119,10 +150,12 @@ final class WebSocketServer {
             }
         case "click":
             inputController.mouseClick(button: command.button ?? "left")
-        case "doubleClick":
-            inputController.doubleClick(button: command.button ?? "left")
-        case "tripleClick":
-            inputController.tripleClick(button: command.button ?? "left")
+        case "mouseDown":
+            inputController.mouseDown(button: command.button ?? "left")
+        case "mouseUp":
+            inputController.mouseUp(button: command.button ?? "left")
+        case "dragMove":
+            inputController.dragMouse(dx: command.dx ?? 0, dy: command.dy ?? 0)
         case "move":
             inputController.moveMouse(dx: command.dx ?? 0, dy: command.dy ?? 0)
         case "scroll":
@@ -139,9 +172,63 @@ final class WebSocketServer {
             if let url = command.url {
                 inputController.openURL(url)
             }
+        case "kb":
+            if let key = command.key {
+                inputController.handleKbInput(key, flags: command.flags)
+            }
         default:
             break
         }
+    }
+
+    // MARK: - Auth message handling
+
+    private func handleAuthMessage(_ command: RemoteCommand) {
+        let token = command.token ?? ""
+
+        guard authContext.isWellFormed(token) else {
+            sendMessage(#"{"type":"auth:rejected","reason":"invalid_token"}"#)
+            return
+        }
+
+        if authContext.isTokenValid(token) {
+            authState = .approved
+            let safeToken = token.replacingOccurrences(of: "\"", with: "")
+            sendMessage(#"{"type":"auth:approved","token":"\#(safeToken)"}"#)
+        } else {
+            sendMessage(#"{"type":"auth:rejected","reason":"session_expired"}"#)
+        }
+    }
+
+    private func handleAuthRequest(_ command: RemoteCommand) {
+        let deviceName = command.device ?? "Unknown Device"
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+
+            let alert = NSAlert()
+            alert.messageText = "Connection Request"
+            alert.informativeText = "\(deviceName) wants to control your Mac via iControl."
+            alert.addButton(withTitle: "Allow")
+            alert.addButton(withTitle: "Deny")
+            alert.alertStyle = .warning
+            let response = alert.runModal()
+
+            if response == .alertFirstButtonReturn {
+                let sessionToken = AuthContext.generateToken()
+                self.authContext.approvedSessions.insert(sessionToken)
+                self.authState = .approved
+                self.sendMessage(#"{"type":"auth:approved","token":"\#(sessionToken)"}"#)
+            } else {
+                self.sendMessage(#"{"type":"auth:rejected","reason":"denied"}"#)
+            }
+        }
+    }
+
+    // MARK: - Frame helpers
+
+    private func sendMessage(_ text: String) {
+        sendFrame(opcode: 0x1, payload: Data(text.utf8))
     }
 
     private func sendFrame(opcode: UInt8, payload: Data) {
