@@ -52,7 +52,7 @@ final class InputController {
             scrollWheelEvent2Source: nil,
             units: .pixel,
             wheelCount: 2,
-            wheel1: Int32(-dy),
+            wheel1: Int32(dy),
             wheel2: Int32(dx),
             wheel3: 0
         )

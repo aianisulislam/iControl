@@ -74,10 +74,10 @@
         background: radial-gradient(circle at top, rgba(5, 2, 59, 0.6), transparent 38%), linear-gradient(180deg, var(--color-bg), #020617);
       }
       body.drawer-open {
-        transform: translateX(min(20rem, 88vw));
+        transform: translateX(320px);
       }
       body.vertical-rl.drawer-open {
-        transform: translateY(min(20rem, 88vw));
+        transform: translateY(320px);
       }
       body.vertical-rl svg {
         transform: rotate(90deg);
@@ -146,7 +146,7 @@
         border: 1px solid var(--color-border);
         box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
         backdrop-filter: blur(10px);
-        max-inline-size: 480px;
+        max-inline-size: 42rem;
         inline-size: 100%;
         order: 2;
       }
@@ -290,7 +290,7 @@
         grid-row: span 4;
       }
       .tab {
-        max-inline-size: 340px;
+        max-inline-size: 480px;
         min-block-size: 280px;
         margin: auto;
       }
@@ -416,7 +416,7 @@
         inset-block-start: 0;
         inset-inline-start: 0;
         block-size: 100%;
-        inline-size: min(20rem, 88vw);
+        inline-size: 320px;
         background: radial-gradient(circle at top, rgba(5, 2, 59, 0.6), transparent 38%), linear-gradient(180deg, var(--color-bg), #020617);
         border-inline-end: 1px solid var(--color-border);
         z-index: 101;
@@ -425,13 +425,7 @@
         padding: var(--padding);
       }
       body.vertical-rl #settings-drawer {
-        block-size: min(20rem, 88vw);
-        inline-size: 100%;
-        border-inline-end: none;
-        border-block-end: 1px solid var(--color-border);
         transform: translateY(-100%);
-        overflow-block: visible;
-        overflow-inline: auto;
       }
       #drawer-header {
         display: flex;
@@ -1428,19 +1422,19 @@
         </div>
         <div id="type" class="tab grid grid-4 hidden">
           <button data-command='{"type":"key","key":"cmd+a"}'>
-            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px">
+            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: calc(50% - 20px); inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">A</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+c"}'>
-            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px">
+            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: calc(50% - 20px); inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">C</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+v"}'>
-            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px">
+            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: calc(50% - 20px); inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">V</span>
@@ -1636,28 +1630,28 @@
             </svg>
           </button>
           <button data-command='{"type":"key","key":"cmd+z"}'>
-            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px">
+            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: calc(50% - 20px); inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">Z</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+shift+z"}'>
-            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 9px; inline-size: 10px; block-size: 10px">
+            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: calc(50% - 28px); inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
-            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 20px; inline-size: 10px; block-size: 10px">
+            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: calc(50% - 18px); inline-size: 12px; block-size: 10px">
               <use href="#icon-shift"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">Z</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+n"}'>
-            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px">
+            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: calc(50% - 20px); inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">N</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+o"}'>
-            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px">
+            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: calc(50% - 20px); inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">O</span>
