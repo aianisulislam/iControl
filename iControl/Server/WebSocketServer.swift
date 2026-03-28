@@ -1,6 +1,14 @@
 import Foundation
 import Network
 
+
+struct KbFlags: Codable {
+    let shift: Bool?
+    let ctrl: Bool?
+    let opt: Bool?
+    let cmd: Bool?
+}
+
 struct RemoteCommand: Decodable {
     let type: String
     let key: String?
@@ -11,6 +19,7 @@ struct RemoteCommand: Decodable {
     let app: String?
     let dx: Double?
     let dy: Double?
+    let flags: KbFlags?
 }
 
 enum CommandValue: Decodable {
@@ -119,10 +128,6 @@ final class WebSocketServer {
             }
         case "click":
             inputController.mouseClick(button: command.button ?? "left")
-        case "doubleClick":
-            inputController.doubleClick(button: command.button ?? "left")
-        case "tripleClick":
-            inputController.tripleClick(button: command.button ?? "left")
         case "mouseDown":
             inputController.mouseDown(button: command.button ?? "left")
         case "mouseUp":
@@ -144,6 +149,10 @@ final class WebSocketServer {
         case "url":
             if let url = command.url {
                 inputController.openURL(url)
+            }
+        case "kb":
+            if let key = command.key {
+                inputController.handleKbInput(key, flags: command.flags)
             }
         default:
             break

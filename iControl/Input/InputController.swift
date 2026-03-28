@@ -7,6 +7,7 @@ final class InputController {
 
     private let volumeObserverQueue = DispatchQueue(label: "iControl.VolumeObserver")
     private let keyboardEventSource = CGEventSource(stateID: .hidSystemState)
+    private let kbEventSource = CGEventSource(stateID: .hidSystemState)
     private let keyboardTapLocation: CGEventTapLocation = .cghidEventTap
     private let controlArrowTapLocation: CGEventTapLocation = .cgAnnotatedSessionEventTap
     private var lastKnownPosition: CGPoint
@@ -166,6 +167,17 @@ final class InputController {
             if let value {
                 setVolume(to: value)
             }
+		case "brightnessDown":
+			postKey(keyCode: 107)
+		case "brightnessUp":
+			postKey(keyCode: 113)
+		case "screenshot":
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            process.arguments = ["-a", "Screenshot"]
+            try? process.run()
+		case "siri":
+			launchApp("com.apple.Siri")
         default:
             break
         }
@@ -200,6 +212,133 @@ final class InputController {
 
         NSWorkspace.shared.open(url)
     }
+
+	func handleKbInput(_ key: String, flags: KbFlags?) {
+		let cgFlags = cgEventFlags(from: flags)
+
+		// ── F keys ──────────────────────────────────────────────────────────────
+		if let fKeyCode = fKeyCode(for: key) {
+			postKbKey(fKeyCode, flags: cgFlags)
+			return
+		}
+
+		// ── Named special keys ───────────────────────────────────────────────────
+		if let specialCode = kbSpecialKeyCode(for: key) {
+			postKbKey(specialCode, flags: cgFlags)
+			return
+		}
+
+		// ── Printable characters ─────────────────────────────────────────────────
+		// Single character — post via CGKeyCode if we have one, else typeText
+		if key.count == 1 {
+			if let code = alphaNumericKeyCode(for: key.lowercased()) {
+				postKbKey(code, flags: cgFlags)
+			} else {
+				// Symbol with no direct keycode — inject as unicode
+				// Flags intentionally not stamped — character already resolved client-side
+				let utf16 = Array(key.utf16)
+				let down = CGEvent(keyboardEventSource: kbEventSource, virtualKey: 0, keyDown: true)
+				let up   = CGEvent(keyboardEventSource: kbEventSource, virtualKey: 0, keyDown: false)
+				down?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+				up?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+				down?.post(tap: keyboardTapLocation)
+				up?.post(tap: keyboardTapLocation)
+			}
+			return
+		}
+	}
+
+	// ── CGEventFlags from KbFlags ─────────────────────────────────────────────────
+
+	private func cgEventFlags(from flags: KbFlags?) -> CGEventFlags {
+		guard let flags else { return [] }
+		var result: CGEventFlags = []
+		if flags.shift == true { result.insert(.maskShift) }
+		if flags.ctrl  == true { result.insert(.maskControl) }
+		if flags.opt   == true { result.insert(.maskAlternate) }
+		if flags.cmd   == true { result.insert(.maskCommand) }
+		return result
+	}
+
+	// ── Post a kb key with flags ──────────────────────────────────────────────────
+
+    private func postKbKey(_ keyCode: CGKeyCode, flags: CGEventFlags) {
+        let tapLocation: CGEventTapLocation = (flags == .maskControl && isArrowKey(keyCode))
+            ? controlArrowTapLocation
+            : keyboardTapLocation
+
+        // post modifier keydowns if flags present
+        if !flags.isEmpty {
+            let modifierCodes = modifierKeyCodes(for: flags)
+            var accumulated: CGEventFlags = []
+            for code in modifierCodes {
+                accumulated.insert(self.flags(forPressedModifierKeyCode: code))
+                let modDown = CGEvent(keyboardEventSource: kbEventSource, virtualKey: code, keyDown: true)
+                modDown?.flags = accumulated
+                modDown?.post(tap: tapLocation)
+                usleep(1500)
+            }
+        }
+
+        let down = CGEvent(keyboardEventSource: kbEventSource, virtualKey: keyCode, keyDown: true)
+        let up   = CGEvent(keyboardEventSource: kbEventSource, virtualKey: keyCode, keyDown: false)
+        down?.flags = flags
+        up?.flags   = flags
+        down?.post(tap: tapLocation)
+        usleep(1500)
+        up?.post(tap: tapLocation)
+        usleep(1500)
+
+        // post modifier keyups in reverse
+        if !flags.isEmpty {
+            let modifierCodes = modifierKeyCodes(for: flags)
+            var accumulated = flags
+            for code in modifierCodes.reversed() {
+                accumulated.remove(self.flags(forPressedModifierKeyCode: code))
+                let modUp = CGEvent(keyboardEventSource: kbEventSource, virtualKey: code, keyDown: false)
+                modUp?.flags = accumulated
+                modUp?.post(tap: tapLocation)
+                usleep(1500)
+            }
+        }
+    }
+
+	// ── F key codes ───────────────────────────────────────────────────────────────
+
+	private func fKeyCode(for key: String) -> CGKeyCode? {
+		switch key {
+		case "f1":  return 122
+		case "f2":  return 120
+		case "f3":  return 99
+		case "f4":  return 118
+		case "f5":  return 96
+		case "f6":  return 97
+		case "f7":  return 98
+		case "f8":  return 100
+		case "f9":  return 101
+		case "f10": return 109
+		case "f11": return 103
+		case "f12": return 111
+		default:    return nil
+		}
+	}
+
+	// ── Special key codes (kb pipeline only) ─────────────────────────────────────
+
+	private func kbSpecialKeyCode(for key: String) -> CGKeyCode? {
+		switch key {
+		case "escape":              return 53
+		case "delete":              return 51
+		case "return", "enter":     return 36
+		case "tab":                 return 48
+		case "space":               return 49
+		case "up":                  return 126
+		case "down":                return 125
+		case "left":                return 123
+		case "right":               return 124
+		default:                    return nil
+		}
+	}
 
     private func mouseButtonEventTypes(for button: String) -> (CGMouseButton, CGEventType, CGEventType) {
         switch button {

@@ -35,8 +35,9 @@
         color: var(--color-text);
       }
       html {
-        width: 100vw;
-        height: 100vh;
+        width: 100%;
+        height: 100%;
+        background-color: var(--color-bg);
       }
       * {
         box-sizing: border-box;
@@ -97,19 +98,15 @@
       header > * {
         pointer-events: auto;
       }
-      header.mini {
-        position: fixed;
-      }
-      header.mini > div:first-child {
-        display: none;
-      }
       main {
-        inline-size: min(42rem, 100%);
         flex: 1;
         display: flex;
         flex-direction: column;
+        align-items: center;
         gap: var(--gap);
         min-block-size: 0;
+        container-type: size;
+        inline-size: 100%;
       }
       .header-button {
         inline-size: 36px;
@@ -142,13 +139,16 @@
         justify-content: center;
         align-items: center;
       }
-      #buttons-wrapper {
+      #tab-wrapper {
         padding: var(--padding);
         border-radius: var(--radius-lg);
         background: rgba(0, 0, 0, 0.25);
         border: 1px solid var(--color-border);
         box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
         backdrop-filter: blur(10px);
+        max-inline-size: 480px;
+        inline-size: 100%;
+        order: 2;
       }
       .tab-title-wrapper {
         margin-block-end: 0.75rem;
@@ -172,6 +172,8 @@
       #touchpad-wrapper {
         flex: 1;
         min-block-size: 0;
+        max-inline-size: 42rem;
+        inline-size: 100%;
         border-radius: var(--radius-lg);
         background: linear-gradient(180deg, rgba(25, 42, 96, 0.25), rgba(0, 0, 0, 0.25));
         border: 1px solid var(--color-border-accent);
@@ -179,12 +181,14 @@
         display: flex;
         flex-direction: column;
         align-items: stretch;
-        container-type: size;
         transition: all 0.3s ease-in-out;
+        order: 1;
+      }
+      #touchpad-wrapper.swapped {
+        order: 3;
       }
       #touchpad {
         flex: 1;
-        margin-block-end: 0.75rem;
         user-select: none;
         touch-action: none;
       }
@@ -196,14 +200,13 @@
         background: rgba(180, 100, 255, 0.08);
       }
       #cursorPad.select-mode {
-        background: rgba(100, 150, 255, 0.2) !important;
+        background: rgba(100, 150, 255, 0.2);
       }
       #touchpad-buttons {
         flex: 0 0 48px;
         display: flex;
-        gap: 2px;
+        gap: 4px;
         align-items: stretch;
-        transition: all 0.3s ease-in-out;
       }
 
       @container (max-block-size: 82px) {
@@ -212,7 +215,18 @@
           margin-block-end: 0;
         }
         #touchpad-buttons {
-          flex: 1
+          flex: 1;
+        }
+      }
+      @container (max-block-size: 20px) {
+        #touchpad-wrapper {
+          display: none;
+        }
+        #touchpad {
+          display: none;
+        }
+        #touchpad-buttons {
+          display: none;
         }
       }
 
@@ -477,11 +491,16 @@
         flex-direction: column;
         gap: 1px;
         inline-size: 100%;
-        max-inline-size: 1920px;
         --key-width: calc(calc(min(100vi, 1920px) - 14px) / 14.5);
         --key-height: 48px;
-        transition: all 0.3s ease-in-out;
+        transition: all 1s ease-in-out;
         overflow: hidden;
+        max-inline-size: 1920px;
+        block-size: auto;
+        order: 3;
+      }
+      .keyboard.swapped {
+        order: 1;
       }
       .keyboard > .row {
         display: flex;
@@ -489,7 +508,7 @@
         gap: 1px;
       }
       .keyboard.mini {
-        max-block-size: var(--key-height);
+        block-size: var(--key-height);
       }
       .keyboard .key {
         inline-size: var(--key-width);
@@ -547,6 +566,19 @@
       .keyboard .key:active {
         transform: translateY(2px);
       }
+      body.vertical-rl .keyboard .key:active {
+        transform: translateX(-2px);
+      }
+      /* Letter case driven by keyboard state */
+      .keyboard.shift-active .key.letter,
+      .keyboard.caps-active .key.letter {
+        text-transform: uppercase;
+      }
+
+      /* Override default uppercase on .letter when neither active */
+      .keyboard:not(.shift-active):not(.caps-active) .key.letter {
+        text-transform: lowercase;
+      }
       .keyboard .key.dual {
         flex-direction: column;
         justify-content: space-between;
@@ -562,6 +594,16 @@
         font-weight: 500;
         line-height: 1;
         color: inherit;
+      }
+      .keyboard.shift-active .key.dual .top {
+        font-size: 12px;
+        font-weight: 500;
+        color: inherit;
+      }
+      .keyboard.shift-active .key.dual .bottom {
+        font-size: 10px;
+        color: #71717a;
+        font-weight: inherit;
       }
       .keyboard .fn .key.dual .top {
         font-size: 12px;
@@ -587,9 +629,9 @@
           display: inline;
         }
       }
-      @media screen and (min-width: 820px) {
+      @media screen and (min-width: 820px) and (min-height: 480px) {
         .keyboard {
-          --key-height: 72px
+          --key-height: 72px;
         }
         .keyboard .key {
           font-size: 16px;
@@ -614,7 +656,7 @@
       }
       @media screen and (min-width: 1280px) {
         .keyboard {
-          --key-height: 84px
+          --key-height: 84px;
         }
         .keyboard .key {
           font-size: 18px;
@@ -1173,18 +1215,10 @@
           fill-opacity="0.85"
         />
       </symbol>
-      <symbol id="icon-search" viewBox="0 0 18.4453 18.2695">
-        <rect height="18.2695" opacity="0" width="18.4453" x="0" y="0" />
+      <symbol id="icon-siri" viewBox="0 0 19.2891 18.9492">
+        <rect height="18.9492" opacity="0" width="19.2891" x="0" y="0" />
         <path
-          d="M0 7.45312C0 11.5664 3.33984 14.8945 7.45312 14.8945C9.03516 14.8945 10.4883 14.4023 11.6953 13.5586L16.0547 17.9297C16.3008 18.1641 16.6055 18.2695 16.9219 18.2695C17.6016 18.2695 18.0938 17.7539 18.0938 17.0742C18.0938 16.7461 17.9648 16.4531 17.7656 16.2305L13.4297 11.8828C14.3555 10.6406 14.8945 9.11719 14.8945 7.45312C14.8945 3.33984 11.5664 0 7.45312 0C3.33984 0 0 3.33984 0 7.45312ZM1.80469 7.45312C1.80469 4.32422 4.32422 1.80469 7.45312 1.80469C10.5703 1.80469 13.1016 4.32422 13.1016 7.45312C13.1016 10.5703 10.5703 13.1016 7.45312 13.1016C4.32422 13.1016 1.80469 10.5703 1.80469 7.45312Z"
-          fill="currentColor"
-          fill-opacity="0.85"
-        />
-      </symbol>
-      <symbol id="icon-mic" viewBox="0 0 13.8047 21.0352">
-        <rect height="21.0352" opacity="0" width="13.8047" x="0" y="0" />
-        <path
-          d="M6.72656 16.3359C10.7109 16.3359 13.4531 13.6523 13.4531 9.72656L13.4531 7.82812C13.4531 7.38281 13.1016 7.03125 12.6562 7.03125C12.2227 7.03125 11.8711 7.38281 11.8711 7.82812L11.8711 9.65625C11.8711 12.8086 9.84375 14.8828 6.72656 14.8828C3.60938 14.8828 1.58203 12.8086 1.58203 9.65625L1.58203 7.82812C1.58203 7.38281 1.23047 7.03125 0.785156 7.03125C0.351562 7.03125 0 7.38281 0 7.82812L0 9.72656C0 13.6523 2.74219 16.3359 6.72656 16.3359ZM3.26953 9.41016C3.26953 11.6133 4.6875 13.125 6.72656 13.125C8.75391 13.125 10.1836 11.6133 10.1836 9.41016L10.1836 3.71484C10.1836 1.51172 8.75391 0 6.72656 0C4.6875 0 3.26953 1.51172 3.26953 3.71484ZM4.85156 9.41016L4.85156 3.71484C4.85156 2.36719 5.60156 1.55859 6.72656 1.55859C7.83984 1.55859 8.60156 2.36719 8.60156 3.71484L8.60156 9.41016C8.60156 10.7578 7.83984 11.5664 6.72656 11.5664C5.60156 11.5664 4.85156 10.7578 4.85156 9.41016ZM2.625 19.8047L10.8281 19.8047C11.2617 19.8047 11.6133 19.4531 11.6133 19.0078C11.6133 18.5742 11.2617 18.2227 10.8281 18.2227L2.625 18.2227C2.17969 18.2227 1.82812 18.5742 1.82812 19.0078C1.82812 19.4531 2.17969 19.8047 2.625 19.8047ZM6.72656 19.4531C7.16016 19.4531 7.51172 19.1016 7.51172 18.668L7.51172 15.9844C7.51172 15.5391 7.16016 15.1875 6.72656 15.1875C6.28125 15.1875 5.92969 15.5391 5.92969 15.9844L5.92969 18.668C5.92969 19.1016 6.28125 19.4531 6.72656 19.4531Z"
+          d="M9.45703 18.9258C14.6836 18.9258 18.9375 14.6953 18.9375 9.46875C18.9375 4.24219 14.6836 0 9.45703 0C4.24219 0 0 4.24219 0 9.46875C0 14.6953 4.24219 18.9258 9.45703 18.9258ZM9.45703 17.1328C5.22656 17.1328 1.62891 13.6992 1.62891 9.46875C1.62891 5.23828 5.22656 1.79297 9.45703 1.79297C13.6875 1.79297 17.3555 5.53125 17.3555 9.46875C17.3555 13.3828 13.6875 17.1328 9.45703 17.1328ZM4.58203 14.2734C7.07812 14.2734 9.09375 12.9141 10.7812 11.4961L9.59766 10.3828C8.10938 11.6367 6.49219 12.6914 4.58203 12.6914C2.77734 12.6914 1.62891 11.3672 1.62891 9.46875C1.62891 7.5 2.70703 6.24609 4.58203 6.24609C6.62109 6.24609 8.34375 7.86328 10.0664 9.50391C11.8711 11.2148 13.6758 12.9727 15.9023 12.9727C17.6484 12.9727 18.9375 11.5898 18.9375 9.46875C18.9375 7.75781 17.5664 6.43359 15.8203 6.43359C14.5664 6.43359 13.418 7.13672 12.2461 8.08594L13.4297 9.21094C14.543 8.30859 15.1758 8.00391 15.8203 8.00391C16.7227 8.00391 17.3555 8.64844 17.3555 9.5625C17.3555 10.6406 16.6992 11.4023 15.75 11.4023C14.3555 11.4023 12.9961 10.1367 11.3672 8.55469C9.53906 6.78516 7.35938 4.66406 4.58203 4.66406C1.875 4.66406 0 6.63281 0 9.46875C0 12.1758 2.00391 14.2734 4.58203 14.2734Z"
           fill="currentColor"
           fill-opacity="0.85"
         />
@@ -1257,23 +1291,28 @@
           fill-opacity="0.85"
         />
       </symbol>
-      <symbol id="icon-keyboard-close" viewBox="0 0 23.6367 24.8086">
-        <rect height="24.8086" opacity="0" width="23.6367" x="0" y="0" />
+      <symbol id="icon-screenshot" viewBox="0 0 18.5742 18.2461">
+        <rect height="18.2461" opacity="0" width="18.5742" x="0" y="0" />
         <path
-          d="M2.98828 19.7344L20.2969 19.7344C22.2891 19.7344 23.2852 18.75 23.2852 16.7812L23.2852 8.00391C23.2852 6.04688 22.2891 5.0625 20.2969 5.0625L2.98828 5.0625C0.984375 5.0625 0 6.03516 0 8.00391L0 16.7812C0 18.75 0.984375 19.7344 2.98828 19.7344ZM3.01172 18.0469C2.16797 18.0469 1.6875 17.5898 1.6875 16.6992L1.6875 8.09766C1.6875 7.20703 2.16797 6.75 3.01172 6.75L20.2734 6.75C21.1172 6.75 21.5977 7.20703 21.5977 8.09766L21.5977 16.6992C21.5977 17.5898 21.1172 18.0469 20.2734 18.0469ZM3.82031 10.3008L4.69922 10.3008C4.95703 10.3008 5.10938 10.1367 5.10938 9.87891L5.10938 9C5.10938 8.74219 4.95703 8.57812 4.69922 8.57812L3.82031 8.57812C3.5625 8.57812 3.39844 8.74219 3.39844 9L3.39844 9.87891C3.39844 10.1367 3.5625 10.3008 3.82031 10.3008ZM6.77344 10.3008L7.65234 10.3008C7.91016 10.3008 8.0625 10.1367 8.0625 9.87891L8.0625 9C8.0625 8.74219 7.91016 8.57812 7.65234 8.57812L6.77344 8.57812C6.51562 8.57812 6.35156 8.74219 6.35156 9L6.35156 9.87891C6.35156 10.1367 6.51562 10.3008 6.77344 10.3008ZM9.72656 10.3008L10.6055 10.3008C10.8633 10.3008 11.0156 10.1367 11.0156 9.87891L11.0156 9C11.0156 8.74219 10.8633 8.57812 10.6055 8.57812L9.72656 8.57812C9.46875 8.57812 9.30469 8.74219 9.30469 9L9.30469 9.87891C9.30469 10.1367 9.46875 10.3008 9.72656 10.3008ZM12.6797 10.3008L13.5586 10.3008C13.8164 10.3008 13.9688 10.1367 13.9688 9.87891L13.9688 9C13.9688 8.74219 13.8164 8.57812 13.5586 8.57812L12.6797 8.57812C12.4219 8.57812 12.2578 8.74219 12.2578 9L12.2578 9.87891C12.2578 10.1367 12.4219 10.3008 12.6797 10.3008ZM15.6328 10.3008L16.5117 10.3008C16.7695 10.3008 16.9219 10.1367 16.9219 9.87891L16.9219 9C16.9219 8.74219 16.7695 8.57812 16.5117 8.57812L15.6328 8.57812C15.375 8.57812 15.2109 8.74219 15.2109 9L15.2109 9.87891C15.2109 10.1367 15.375 10.3008 15.6328 10.3008ZM18.5859 10.3008L19.4648 10.3008C19.7227 10.3008 19.875 10.1367 19.875 9.87891L19.875 9C19.875 8.74219 19.7227 8.57812 19.4648 8.57812L18.5859 8.57812C18.3281 8.57812 18.1641 8.74219 18.1641 9L18.1641 9.87891C18.1641 10.1367 18.3281 10.3008 18.5859 10.3008ZM3.82031 13.2539L4.69922 13.2539C4.95703 13.2539 5.10938 13.0898 5.10938 12.832L5.10938 11.9531C5.10938 11.6953 4.95703 11.5312 4.69922 11.5312L3.82031 11.5312C3.5625 11.5312 3.39844 11.6953 3.39844 11.9531L3.39844 12.832C3.39844 13.0898 3.5625 13.2539 3.82031 13.2539ZM6.77344 13.2539L7.65234 13.2539C7.91016 13.2539 8.0625 13.0898 8.0625 12.832L8.0625 11.9531C8.0625 11.6953 7.91016 11.5312 7.65234 11.5312L6.77344 11.5312C6.51562 11.5312 6.35156 11.6953 6.35156 11.9531L6.35156 12.832C6.35156 13.0898 6.51562 13.2539 6.77344 13.2539ZM9.72656 13.2539L10.6055 13.2539C10.8633 13.2539 11.0156 13.0898 11.0156 12.832L11.0156 11.9531C11.0156 11.6953 10.8633 11.5312 10.6055 11.5312L9.72656 11.5312C9.46875 11.5312 9.30469 11.6953 9.30469 11.9531L9.30469 12.832C9.30469 13.0898 9.46875 13.2539 9.72656 13.2539ZM12.6797 13.2539L13.5586 13.2539C13.8164 13.2539 13.9688 13.0898 13.9688 12.832L13.9688 11.9531C13.9688 11.6953 13.8164 11.5312 13.5586 11.5312L12.6797 11.5312C12.4219 11.5312 12.2578 11.6953 12.2578 11.9531L12.2578 12.832C12.2578 13.0898 12.4219 13.2539 12.6797 13.2539ZM15.6328 13.2539L16.5117 13.2539C16.7695 13.2539 16.9219 13.0898 16.9219 12.832L16.9219 11.9531C16.9219 11.6953 16.7695 11.5312 16.5117 11.5312L15.6328 11.5312C15.375 11.5312 15.2109 11.6953 15.2109 11.9531L15.2109 12.832C15.2109 13.0898 15.375 13.2539 15.6328 13.2539ZM18.5859 13.2539L19.4648 13.2539C19.7227 13.2539 19.875 13.0898 19.875 12.832L19.875 11.9531C19.875 11.6953 19.7227 11.5312 19.4648 11.5312L18.5859 11.5312C18.3281 11.5312 18.1641 11.6953 18.1641 11.9531L18.1641 12.832C18.1641 13.0898 18.3281 13.2539 18.5859 13.2539ZM3.82031 16.207L4.69922 16.207C4.95703 16.207 5.10938 16.043 5.10938 15.7852L5.10938 14.9062C5.10938 14.6484 4.95703 14.4844 4.69922 14.4844L3.82031 14.4844C3.5625 14.4844 3.39844 14.6484 3.39844 14.9062L3.39844 15.7852C3.39844 16.043 3.5625 16.207 3.82031 16.207ZM6.87891 16.207L16.3945 16.207C16.7344 16.207 16.9219 16.0078 16.9219 15.6797L16.9219 15.0234C16.9219 14.6836 16.7344 14.4844 16.3945 14.4844L6.87891 14.4844C6.55078 14.4844 6.35156 14.6836 6.35156 15.0234L6.35156 15.6797C6.35156 16.0078 6.55078 16.207 6.87891 16.207ZM18.5859 16.207L19.4648 16.207C19.7227 16.207 19.875 16.043 19.875 15.7852L19.875 14.9062C19.875 14.6484 19.7227 14.4844 19.4648 14.4844L18.5859 14.4844C18.3281 14.4844 18.1641 14.6484 18.1641 14.9062L18.1641 15.7852C18.1641 16.043 18.3281 16.207 18.5859 16.207Z"
+          d="M0 5.14453C0 5.60156 0.386719 5.98828 0.84375 5.98828C1.3125 5.98828 1.6875 5.60156 1.6875 5.14453L1.6875 3.42188C1.6875 2.36719 2.34375 1.71094 3.41016 1.71094L5.16797 1.71094C5.625 1.71094 6.01172 1.32422 6.01172 0.867188C6.01172 0.398438 5.625 0.0117188 5.16797 0.0117188L3.41016 0.0117188C1.30078 0.0117188 0 1.33594 0 3.42188ZM18.2227 5.14453L18.2227 3.42188C18.2227 1.33594 16.9219 0.0117188 14.8242 0.0117188L13.0547 0.0117188C12.5977 0.0117188 12.2109 0.398438 12.2109 0.867188C12.2109 1.32422 12.5977 1.71094 13.0547 1.71094L14.8242 1.71094C15.8906 1.71094 16.5352 2.36719 16.5352 3.42188L16.5352 5.14453C16.5352 5.60156 16.9219 5.98828 17.3789 5.98828C17.8359 5.98828 18.2227 5.60156 18.2227 5.14453ZM0 13.125L0 14.8359C0 16.9336 1.30078 18.2461 3.41016 18.2461L5.16797 18.2461C5.625 18.2461 6.01172 17.8594 6.01172 17.4023C6.01172 16.9336 5.625 16.5469 5.16797 16.5469L3.41016 16.5469C2.34375 16.5469 1.6875 15.8906 1.6875 14.8359L1.6875 13.125C1.6875 12.6562 1.3125 12.2695 0.84375 12.2695C0.386719 12.2695 0 12.6562 0 13.125ZM18.2227 13.125C18.2227 12.6562 17.8359 12.2695 17.3789 12.2695C16.9219 12.2695 16.5352 12.6562 16.5352 13.125L16.5352 14.8359C16.5352 15.8906 15.8906 16.5469 14.8242 16.5469L13.0547 16.5469C12.5977 16.5469 12.2109 16.9336 12.2109 17.4023C12.2109 17.8594 12.5977 18.2461 13.0547 18.2461L14.8242 18.2461C16.9219 18.2461 18.2227 16.9336 18.2227 14.8359Z"
           fill="currentColor"
           fill-opacity="0.85"
         />
         <path
-          d="M11.6484 24.8086C12.0586 24.8086 12.5859 24.5859 13.0078 24.4336L17.625 22.7812C18.0352 22.6406 18.1992 22.2656 18.1992 22.0195C18.1992 21.5156 17.8359 21.082 17.2734 21.082C17.0039 21.082 16.6289 21.2344 16.3828 21.3281L10.9805 23.2852L12.3164 23.2852L6.91406 21.3281C6.66797 21.2344 6.30469 21.082 6.02344 21.082C5.49609 21.082 5.09766 21.4922 5.09766 22.0195C5.09766 22.2656 5.25 22.6406 5.67188 22.7812L10.2891 24.4336C10.7227 24.5977 11.2383 24.8086 11.6484 24.8086Z"
+          d="M5.0625 13.2891L13.1602 13.2891C14.1562 13.2891 14.6719 12.7969 14.6719 11.8125L14.6719 6.99609C14.6719 6 14.1562 5.50781 13.1602 5.50781L12.0234 5.50781C11.6719 5.50781 11.5547 5.42578 11.3555 5.20312L11.0039 4.80469C10.7695 4.55859 10.5234 4.40625 10.043 4.40625L8.16797 4.40625C7.69922 4.40625 7.44141 4.54688 7.21875 4.80469L6.85547 5.20312C6.64453 5.41406 6.53906 5.50781 6.1875 5.50781L5.0625 5.50781C4.05469 5.50781 3.55078 6 3.55078 6.99609L3.55078 11.8125C3.55078 12.7969 4.05469 13.2891 5.0625 13.2891ZM9.12891 12.1055C7.59375 12.1055 6.36328 10.8867 6.36328 9.35156C6.36328 7.82812 7.59375 6.60938 9.12891 6.60938C10.6523 6.60938 11.8711 7.82812 11.8711 9.35156C11.8711 10.9219 10.6523 12.1055 9.12891 12.1055ZM9.11719 11.2383C10.1484 11.2383 10.9922 10.4062 10.9922 9.35156C10.9922 8.32031 10.1484 7.48828 9.11719 7.48828C8.07422 7.48828 7.23047 8.32031 7.23047 9.35156C7.23047 10.4062 8.07422 11.2383 9.11719 11.2383ZM12.9609 7.93359C12.5977 7.93359 12.3047 7.64062 12.3047 7.27734C12.3047 6.92578 12.5977 6.62109 12.9609 6.62109C13.3125 6.62109 13.6172 6.92578 13.6172 7.27734C13.6172 7.64062 13.3125 7.93359 12.9609 7.93359Z"
           fill="currentColor"
           fill-opacity="0.85"
         />
       </symbol>
-      <symbol id="icon-moon" viewBox="0 0 18.9023 18.7148">
-        <rect height="18.7148" opacity="0" width="18.9023" x="0" y="0" />
+      <symbol id="icon-up-down" viewBox="0 0 17.4258 17.0977">
+        <rect height="17.0977" opacity="0" width="17.4258" x="0" y="0" />
         <path
-          d="M9.70312 18.7148C13.7461 18.7148 16.9922 16.2773 18.4336 13.2422C18.7852 12.5039 18.3047 12.0352 17.6367 12.2344C16.9336 12.457 15.832 12.6328 14.9062 12.6328C9.41016 12.6328 6.24609 9.48047 6.24609 3.98438C6.24609 3.02344 6.48047 1.80469 6.77344 1.04297C7.07812 0.269531 6.53906-0.199219 5.8125 0.128906C2.30859 1.67578 0 5.14453 0 9.01172C0 14.3672 4.34766 18.7148 9.70312 18.7148ZM9.70312 17.0977C5.25 17.0977 1.62891 13.4648 1.62891 9.01172C1.62891 6.46875 2.83594 4.14844 4.73438 2.66016C4.66406 3.11719 4.62891 3.55078 4.62891 3.98438C4.62891 10.3828 8.50781 14.2617 14.9062 14.2617C15.2344 14.2617 15.5742 14.2383 15.8789 14.2031C14.4609 15.9023 12.2812 17.0977 9.70312 17.0977Z"
+          d="M2.98828 17.0977L14.0859 17.0977C16.0898 17.0977 17.0742 16.1133 17.0742 14.1445L17.0742 2.96484C17.0742 0.996094 16.0898 0.0117188 14.0859 0.0117188L2.98828 0.0117188C0.996094 0.0117188 0 0.996094 0 2.96484L0 14.1445C0 16.1133 0.996094 17.0977 2.98828 17.0977ZM3.01172 15.3984C2.16797 15.3984 1.6875 14.9414 1.6875 14.0625L1.6875 3.04688C1.6875 2.15625 2.16797 1.71094 3.01172 1.71094L14.0625 1.71094C14.9062 1.71094 15.3867 2.15625 15.3867 3.04688L15.3867 14.0625C15.3867 14.9414 14.9062 15.3984 14.0625 15.3984Z"
+          fill="currentColor"
+          fill-opacity="0.85"
+        />
+        <path
+          d="M8.74219 3.11719C8.55469 3.11719 8.37891 3.19922 8.21484 3.35156L4.96875 6.46875C4.85156 6.57422 4.74609 6.75 4.74609 6.98438C4.74609 7.39453 5.07422 7.71094 5.48438 7.71094C5.625 7.71094 5.83594 7.66406 5.98828 7.5L8.74219 4.81641L11.4844 7.5C11.6484 7.65234 11.8359 7.71094 12 7.71094C12.3984 7.71094 12.7266 7.39453 12.7266 6.98438C12.7266 6.75 12.6328 6.57422 12.5156 6.46875L9.25781 3.35156C9.10547 3.19922 8.91797 3.11719 8.74219 3.11719ZM8.74219 13.9688C8.91797 13.9688 9.11719 13.8867 9.25781 13.7344L12.5156 10.6172C12.6328 10.5117 12.7266 10.3242 12.7266 10.1016C12.7266 9.69141 12.3984 9.375 12 9.375C11.8359 9.375 11.6484 9.43359 11.4844 9.58594L8.74219 12.2695L5.98828 9.58594C5.83594 9.42188 5.625 9.375 5.48438 9.375C5.07422 9.375 4.74609 9.69141 4.74609 10.1016C4.74609 10.3242 4.85156 10.5117 4.96875 10.6172L8.21484 13.7344C8.36719 13.8867 8.55469 13.9688 8.74219 13.9688Z"
           fill="currentColor"
           fill-opacity="0.85"
         />
@@ -1282,13 +1321,13 @@
     <header>
       <div>
         <div class="header-button flex" id="settings" title="Settings">
-          <svg style="inline-size: 24px; block-size: 24px;">
+          <svg style="inline-size: 24px; block-size: 24px">
             <use href="#icon-hamburger"></use>
           </svg>
         </div>
       </div>
       <div style="display: flex">
-        <svg style="inline-size: 20px; block-size: 20px;">
+        <svg style="inline-size: 20px; block-size: 20px">
           <use href="#icon-applogo"></use>
         </svg>
         <h1>iControl</h1>
@@ -1302,15 +1341,15 @@
       </div>
     </header>
     <main>
-      <div id="touchpad-wrapper">
+      <section id="touchpad-wrapper">
         <div id="touchpad" class="touchpad"></div>
         <div id="touchpad-buttons">
           <button data-command='{"type":"click","button":"left"}'></button>
           <button data-command='{"type":"click","button":"middle"}'></button>
           <button data-command='{"type":"click","button":"right"}'></button>
         </div>
-      </div>
-      <section id="buttons-wrapper">
+      </section>
+      <section id="tab-wrapper">
         <div class="tab-title-wrapper flex">
           <div class="tab-title">General</div>
           <div class="tab-title">Type</div>
@@ -1320,109 +1359,109 @@
         </div>
         <div id="general" class="tab grid grid-4 hidden">
           <button data-command='{"type":"key","key":"tab"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-tab"></use>
             </svg>
           </button>
           <button data-command='{"type":"key","key":"up"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-up"></use>
             </svg>
           </button>
           <button data-command='{"type":"key","key":"backspace"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-backspace"></use>
             </svg>
           </button>
           <div data-control="setVolume" data-value="60" class="slider row-3">
             <div class="slider-icon">
-              <svg style="inline-size: 40px; block-size: 20px;">
+              <svg style="inline-size: 40px; block-size: 20px">
                 <use href="#icon-volume-slider"></use>
               </svg>
             </div>
           </div>
           <button data-command='{"type":"key","key":"left"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-left"></use>
             </svg>
           </button>
           <button data-command='{"type":"key","key":"down"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-down"></use>
             </svg>
           </button>
           <button data-command='{"type":"key","key":"right"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-right"></use>
             </svg>
           </button>
           <button data-modifier="shift" data-toggle>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-shift"></use>
             </svg>
           </button>
           <button data-command='{"type":"key","key":"return"}' class="col-2">
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-return"></use>
             </svg>
           </button>
           <button data-modifier="ctrl" data-toggle>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-ctrl"></use>
             </svg>
           </button>
           <button data-modifier="opt" data-toggle>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-opt"></use>
             </svg>
           </button>
           <button data-modifier="cmd" data-toggle>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-cmd"></use>
             </svg>
           </button>
           <button data-command='{"type":"key","key":"space"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-space"></use>
             </svg>
           </button>
         </div>
         <div id="type" class="tab grid grid-4 hidden">
           <button data-command='{"type":"key","key":"cmd+a"}'>
-            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px;">
+            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">A</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+c"}'>
-            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px;">
+            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">C</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+v"}'>
-            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px;">
+            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">V</span>
           </button>
           <button data-command='{"type":"key","key":"backspace"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-backspace"></use>
             </svg>
           </button>
           <button data-command='{"type":"key","key":"tab"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-tab"></use>
             </svg>
           </button>
           <button id="cursorPad" class="col-2">
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-cursorpad"></use>
             </svg>
           </button>
           <button data-command='{"type":"key","key":"return"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-return"></use>
             </svg>
           </button>
@@ -1435,12 +1474,12 @@
         <div id="media" class="tab flex active">
           <div class="ipod-wheel">
             <button class="wheel-button wheel-button-up" data-command='{"type":"system","action":"volumeUp"}'>
-              <svg style="inline-size: 24px; block-size: 24px;">
+              <svg style="inline-size: 24px; block-size: 24px">
                 <use href="#icon-volume-plus"></use>
               </svg>
             </button>
             <button class="wheel-button wheel-button-down" data-command='{"type":"system","action":"volumeDown"}'>
-              <svg style="inline-size: 24px; block-size: 24px;">
+              <svg style="inline-size: 24px; block-size: 24px">
                 <use href="#icon-volume-minus"></use>
               </svg>
             </button>
@@ -1449,7 +1488,7 @@
               data-command='{"type":"system","action":"previousTrack"}'
               data-longpress-command='{"type":"key","key":"left"}'
             >
-              <svg style="inline-size: 24px; block-size: 24px;">
+              <svg style="inline-size: 24px; block-size: 24px">
                 <use href="#icon-prev-track"></use>
               </svg>
             </button>
@@ -1458,12 +1497,12 @@
               data-command='{"type":"system","action":"nextTrack"}'
               data-longpress-command='{"type":"key","key":"right"}'
             >
-              <svg style="inline-size: 24px; block-size: 24px;">
+              <svg style="inline-size: 24px; block-size: 24px">
                 <use href="#icon-next-track"></use>
               </svg>
             </button>
             <button class="wheel-center" data-command='{"type":"system","action":"playPause"}'>
-              <svg style="inline-size: 24px; block-size: 24px;">
+              <svg style="inline-size: 24px; block-size: 24px">
                 <use href="#icon-play-pause"></use>
               </svg>
             </button>
@@ -1471,62 +1510,62 @@
         </div>
         <div id="apps" class="tab grid grid-4 hidden">
           <button data-command='{"type":"app","app":"Finder"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-finder"></use>
             </svg>
           </button>
           <button data-command='{"type":"app","app":"System Settings"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-system-settings"></use>
             </svg>
           </button>
           <button data-command='{"type":"app","app":"Safari"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-safari"></use>
             </svg>
           </button>
           <button data-command='{"type":"app","app":"App Store"}'>
-            <svg style="inline-size: 22px; block-size: 22px;">
+            <svg style="inline-size: 22px; block-size: 22px">
               <use href="#icon-app-store"></use>
             </svg>
           </button>
           <button data-command='{"type":"app","app":"Calendar"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-calendar"></use>
             </svg>
           </button>
           <button data-command='{"type":"app","app":"Reminders"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-reminders"></use>
             </svg>
           </button>
           <button data-command='{"type":"app","app":"Notes"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-notes"></use>
             </svg>
           </button>
           <button data-command='{"type":"app","app":"Photos"}'>
-            <svg style="inline-size: 22px; block-size: 22px;">
+            <svg style="inline-size: 22px; block-size: 22px">
               <use href="#icon-photos"></use>
             </svg>
           </button>
           <button data-command='{"type":"app","app":"Messages"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-messages"></use>
             </svg>
           </button>
           <button data-command='{"type":"app","app":"Facetime"}'>
-            <svg style="inline-size: 22px; block-size: 22px;">
+            <svg style="inline-size: 22px; block-size: 22px">
               <use href="#icon-facetime"></use>
             </svg>
           </button>
           <button data-command='{"type":"app","app":"Music"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-music"></use>
             </svg>
           </button>
           <button data-command='{"type":"url","url":"https://www.youtube.com"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-youtube"></use>
             </svg>
           </button>
@@ -1537,377 +1576,379 @@
         </div>
         <div id="system" class="tab grid grid-4 hidden">
           <button data-command='{"type":"system","action":"missionControl"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-mission-control"></use>
             </svg>
           </button>
           <button data-command='{"type":"system","action":"launchpad"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-launchpad"></use>
             </svg>
           </button>
           <button data-command='{"type":"key","key":"ctrl+down"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-expose"></use>
             </svg>
           </button>
           <button data-command='{"type":"key","key":"cmd+tab"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-window-switch"></use>
             </svg>
           </button>
           <button data-command='{"type":"key","key":"cmd+q"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-close"></use>
             </svg>
           </button>
           <button data-command='{"type":"system","action":"minimize"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-minimize"></use>
             </svg>
           </button>
           <button data-command='{"type":"system","action":"fullscreen"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-fullscreen"></use>
             </svg>
           </button>
           <button data-command='{"type":"key","key":"cmd+space"}'>
-            <svg style="inline-size: 20px; block-size: 20px;">
+            <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-search-circle"></use>
             </svg>
           </button>
           <button data-command='{"type":"key","key":"cmd+a"}'>
-            <svg style="inline-size: 30px; block-size: 30px;">
+            <svg style="inline-size: 30px; block-size: 30px">
               <use href="#icon-select-all"></use>
             </svg>
           </button>
           <button data-command='{"type":"key","key":"cmd+delete"}'>
-            <svg style="inline-size: 22px; block-size: 22px;">
+            <svg style="inline-size: 22px; block-size: 22px">
               <use href="#icon-cmd-delete"></use>
             </svg>
           </button>
           <button data-command='{"type":"key","key":"cmd+c"}'>
-            <svg style="inline-size: 22px; block-size: 22px;">
+            <svg style="inline-size: 22px; block-size: 22px">
               <use href="#icon-copy"></use>
             </svg>
           </button>
           <button data-command='{"type":"key","key":"cmd+v"}'>
-            <svg style="inline-size: 22px; block-size: 22px;">
+            <svg style="inline-size: 22px; block-size: 22px">
               <use href="#icon-paste"></use>
             </svg>
           </button>
           <button data-command='{"type":"key","key":"cmd+z"}'>
-            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px;">
+            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">Z</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+shift+z"}'>
-            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 9px; inline-size: 10px; block-size: 10px;">
+            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 9px; inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
-            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 20px; inline-size: 10px; block-size: 10px;">
+            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 20px; inline-size: 10px; block-size: 10px">
               <use href="#icon-shift"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">Z</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+n"}'>
-            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px;">
+            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">N</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+o"}'>
-            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px;">
+            <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: 18px; inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">O</span>
           </button>
         </div>
       </section>
+      <section class="keyboard hidden" id="keyboard-wrapper">
+        <div class="row fn">
+          <button class="key label left fluid" data-key="escape">esc</button>
+          <button class="key dual" data-action="brightnessDown" data-key="f1">
+            <span class="top">
+              <svg style="inline-size: 16px; block-size: 20px">
+                <use href="#icon-brightness-down"></use>
+              </svg>
+            </span>
+            <span class="bottom">F1</span>
+          </button>
+          <button class="key dual" data-action="brightnessUp" data-key="f2">
+            <span class="top">
+              <svg style="inline-size: 18px; block-size: 20px">
+                <use href="#icon-brightness-up"></use>
+              </svg>
+            </span>
+            <span class="bottom">F2</span>
+          </button>
+          <button class="key dual" data-action="missionControl" data-key="f3">
+            <span class="top">
+              <svg style="inline-size: 20px; block-size: 20px">
+                <use href="#icon-mission-control"></use>
+              </svg>
+            </span>
+            <span class="bottom">F3</span>
+          </button>
+          <button class="key dual" data-action="launchpad" data-key="f4">
+            <span class="top">
+              <svg style="inline-size: 20px; block-size: 20px">
+                <use href="#icon-launchpad"></use>
+              </svg>
+            </span>
+            <span class="bottom">F4</span>
+          </button>
+          <button class="key dual" data-action="siri" data-key="f5">
+            <span class="top">
+              <svg style="inline-size: 16px; block-size: 20px">
+                <use href="#icon-siri"></use>
+              </svg>
+            </span>
+            <span class="bottom">F5</span>
+          </button>
+          <button class="key dual" data-action="screenshot" data-key="f6">
+            <span class="top">
+              <svg style="inline-size: 16px; block-size: 20px">
+                <use href="#icon-screenshot"></use>
+              </svg>
+            </span>
+            <span class="bottom">F6</span>
+          </button>
+          <button class="key dual" data-action="previousTrack" data-key="f7">
+            <span class="top">
+              <svg style="inline-size: 20px; block-size: 20px">
+                <use href="#icon-backward"></use>
+              </svg>
+            </span>
+            <span class="bottom">F7</span>
+          </button>
+          <button class="key dual" data-action="playPause" data-key="f8">
+            <span class="top">
+              <svg style="inline-size: 20px; block-size: 20px">
+                <use href="#icon-play"></use>
+              </svg>
+            </span>
+            <span class="bottom">F8</span>
+          </button>
+          <button class="key dual" data-action="nextTrack" data-key="f9">
+            <span class="top">
+              <svg style="inline-size: 20px; block-size: 20px">
+                <use href="#icon-forward"></use>
+              </svg>
+            </span>
+            <span class="bottom">F9</span>
+          </button>
+          <button class="key dual" data-action="mute" data-key="f10">
+            <span class="top">
+              <svg style="inline-size: 12px; block-size: 20px">
+                <use href="#icon-speaker"></use>
+              </svg>
+            </span>
+            <span class="bottom">F10</span>
+          </button>
+          <button class="key dual" data-action="volumeDown" data-key="f11">
+            <span class="top">
+              <svg style="inline-size: 16px; block-size: 20px">
+                <use href="#icon-speaker-down"></use>
+              </svg>
+            </span>
+            <span class="bottom">F11</span>
+          </button>
+          <button class="key dual" data-action="volumeUp" data-key="f12">
+            <span class="top">
+              <svg style="inline-size: 24px; block-size: 20px">
+                <use href="#icon-speaker-up"></use>
+              </svg>
+            </span>
+            <span class="bottom">F12</span>
+          </button>
+          <button class="key label right" id="closeFullKeyboard">
+            <span>close</span>
+            <svg style="inline-size: 18px; block-size: 24px">
+              <use href="#icon-up-down"></use>
+            </svg>
+          </button>
+        </div>
+        <div class="row">
+          <button class="key dual fluid" data-n="`" data-s="~">
+            <span class="top">~</span>
+            <span class="bottom">`</span>
+          </button>
+          <button class="key dual" data-n="1" data-s="!">
+            <span class="top">!</span>
+            <span class="bottom">1</span>
+          </button>
+          <button class="key dual" data-n="2" data-s="@">
+            <span class="top">@</span>
+            <span class="bottom">2</span>
+          </button>
+          <button class="key dual" data-n="3" data-s="#">
+            <span class="top">#</span>
+            <span class="bottom">3</span>
+          </button>
+          <button class="key dual" data-n="4" data-s="$">
+            <span class="top">$</span>
+            <span class="bottom">4</span>
+          </button>
+          <button class="key dual" data-n="5" data-s="%">
+            <span class="top">%</span>
+            <span class="bottom">5</span>
+          </button>
+          <button class="key dual" data-n="6" data-s="^">
+            <span class="top">^</span>
+            <span class="bottom">6</span>
+          </button>
+          <button class="key dual" data-n="7" data-s="&">
+            <span class="top">&</span>
+            <span class="bottom">7</span>
+          </button>
+          <button class="key dual" data-n="8" data-s="*">
+            <span class="top">*</span>
+            <span class="bottom">8</span>
+          </button>
+          <button class="key dual" data-n="9" data-s="(">
+            <span class="top">(</span>
+            <span class="bottom">9</span>
+          </button>
+          <button class="key dual" data-n="0" data-s=")">
+            <span class="top">)</span>
+            <span class="bottom">0</span>
+          </button>
+          <button class="key dual" data-n="-" data-s="_">
+            <span class="top">_</span>
+            <span class="bottom">-</span>
+          </button>
+          <button class="key dual" data-n="=" data-s="+">
+            <span class="top">+</span>
+            <span class="bottom">=</span>
+          </button>
+          <button class="key one-and-half label right" data-key="delete">delete</button>
+        </div>
+        <div class="row">
+          <button class="key fluid label left" data-key="tab">tab</button>
+          <button class="key letter" data-n="q" data-s="Q">q</button>
+          <button class="key letter" data-n="w" data-s="W">w</button>
+          <button class="key letter" data-n="e" data-s="E">e</button>
+          <button class="key letter" data-n="r" data-s="R">r</button>
+          <button class="key letter" data-n="t" data-s="T">t</button>
+          <button class="key letter" data-n="y" data-s="Y">y</button>
+          <button class="key letter" data-n="u" data-s="U">u</button>
+          <button class="key letter" data-n="i" data-s="I">i</button>
+          <button class="key letter" data-n="o" data-s="O">o</button>
+          <button class="key letter" data-n="p" data-s="P">p</button>
+          <button class="key dual" data-n="[" data-s="{">
+            <span class="top">{</span>
+            <span class="bottom">[</span>
+          </button>
+          <button class="key dual" data-n="]" data-s="}">
+            <span class="top">}</span>
+            <span class="bottom">]</span>
+          </button>
+          <button class="key dual" data-n="\" data-s="|">
+            <span class="top">|</span>
+            <span class="bottom">\</span>
+          </button>
+        </div>
+        <div class="row">
+          <button class="key fluid label left" data-kb-modifier="caps">
+            <span class="key-label-long">caps lock</span>
+            <span class="key-label-short">caps</span>
+            <div style="width: 4px; height: 4px; border-radius: 50%; background-color: currentColor"></div>
+          </button>
+          <button class="key letter" data-n="a" data-s="A">a</button>
+          <button class="key letter" data-n="s" data-s="S">s</button>
+          <button class="key letter" data-n="d" data-s="D">d</button>
+          <button class="key letter" data-n="f" data-s="F">f</button>
+          <button class="key letter" data-n="g" data-s="G">g</button>
+          <button class="key letter" data-n="h" data-s="H">h</button>
+          <button class="key letter" data-n="j" data-s="J">j</button>
+          <button class="key letter" data-n="k" data-s="K">k</button>
+          <button class="key letter" data-n="l" data-s="L">l</button>
+          <button class="key dual" data-n=":" data-s=";">
+            <span class="top">:</span>
+            <span class="bottom">;</span>
+          </button>
+          <button class="key dual" data-n="'" data-s='"'>
+            <span class="top">"</span>
+            <span class="bottom">'</span>
+          </button>
+          <button class="key one-and-half label right" data-key="return">return</button>
+        </div>
+        <div class="row">
+          <button class="key fluid label left" data-kb-modifier="shift">shift</button>
+          <button class="key letter" data-n="z" data-s="Z">z</button>
+          <button class="key letter" data-n="x" data-s="X">x</button>
+          <button class="key letter" data-n="c" data-s="C">c</button>
+          <button class="key letter" data-n="v" data-s="V">v</button>
+          <button class="key letter" data-n="b" data-s="B">b</button>
+          <button class="key letter" data-n="n" data-s="N">n</button>
+          <button class="key letter" data-n="m" data-s="M">m</button>
+          <button class="key dual" data-n="," data-s="<">
+            <span class="top">&lt;</span>
+            <span class="bottom">,</span>
+          </button>
+          <button class="key dual" data-n="." data-s=">">
+            <span class="top">&gt;</span>
+            <span class="bottom">.</span>
+          </button>
+          <button class="key dual" data-n="/" data-s="?">
+            <span class="top">?</span>
+            <span class="bottom">/</span>
+          </button>
+          <button class="key" data-key="up">↑</button>
+          <button class="key label right" data-kb-modifier="shift">shift</button>
+        </div>
+        <div class="row">
+          <button class="key label left" data-kb-modifier="fn">fn</button>
+          <button class="key label left" data-kb-modifier="ctrl">
+            <span class="key-label-long">control</span>
+            <span class="key-label-short">ctrl</span>
+            <svg style="inline-size: 18px; block-size: 16px">
+              <use href="#icon-ctrl"></use>
+            </svg>
+          </button>
+          <button class="key label left" data-kb-modifier="opt">
+            <span class="key-label-long">option</span>
+            <span class="key-label-short">opt</span>
+            <svg style="inline-size: 20px; block-size: 16px">
+              <use href="#icon-opt"></use>
+            </svg>
+          </button>
+          <button class="key cmd label left" data-kb-modifier="cmd">
+            <span class="key-label-long">command</span>
+            <span class="key-label-short">cmd</span>
+            <svg style="inline-size: 20px; block-size: 16px">
+              <use href="#icon-cmd"></use>
+            </svg>
+          </button>
+          <button class="key fluid" data-n=" " data-s=" "></button>
+          <button class="key cmd label right" data-kb-modifier="cmd">
+            <span class="key-label-long">command</span>
+            <span class="key-label-short">cmd</span>
+            <svg style="inline-size: 20px; block-size: 16px">
+              <use href="#icon-cmd"></use>
+            </svg>
+          </button>
+          <button class="key label right" data-kb-modifier="opt">
+            <span class="key-label-long">option</span>
+            <span class="key-label-short">opt</span>
+            <svg style="inline-size: 20px; block-size: 16px">
+              <use href="#icon-opt"></use>
+            </svg>
+          </button>
+          <button class="key" data-key="left">←</button>
+          <button class="key" data-key="down">↓</button>
+          <button class="key" data-key="right">→</button>
+        </div>
+      </section>
     </main>
-    <aside class="keyboard hidden" id="keyboard">
-      <div class="row fn">
-        <button class="key label left fluid">esc</button>
-        <button class="key dual">
-          <span class="top">
-            <svg style="inline-size: 16px; block-size: 20px;">
-              <use href="#icon-brightness-down"></use>
-            </svg>
-          </span>
-          <span class="bottom">F1</span>
-        </button>
-        <button class="key dual">
-          <span class="top">
-            <svg style="inline-size: 18px; block-size: 20px;">
-              <use href="#icon-brightness-up"></use>
-            </svg>
-          </span>
-          <span class="bottom">F2</span>
-        </button>
-        <button class="key dual">
-          <span class="top">
-            <svg style="inline-size: 20px; block-size: 20px;">
-              <use href="#icon-mission-control"></use>
-            </svg>
-          </span>
-          <span class="bottom">F3</span>
-        </button>
-        <button class="key dual">
-          <span class="top">
-            <svg style="inline-size: 14px; block-size: 20px;">
-              <use href="#icon-search"></use>
-            </svg>
-          </span>
-          <span class="bottom">F4</span>
-        </button>
-        <button class="key dual">
-          <span class="top">
-            <svg style="inline-size: 12px; block-size: 20px;">
-              <use href="#icon-mic"></use>
-            </svg>
-          </span>
-          <span class="bottom">F5</span>
-        </button>
-        <button class="key dual">
-          <span class="top">
-            <svg style="inline-size: 14px; block-size: 20px;">
-              <use href="#icon-moon"></use>
-            </svg>
-          </span>
-          <span class="bottom">F6</span>
-        </button>
-        <button class="key dual">
-          <span class="top">
-            <svg style="inline-size: 20px; block-size: 20px;">
-              <use href="#icon-backward"></use>
-            </svg>
-          </span>
-          <span class="bottom">F7</span>
-        </button>
-        <button class="key dual">
-          <span class="top">
-            <svg style="inline-size: 20px; block-size: 20px;">
-              <use href="#icon-play"></use>
-            </svg>
-          </span>
-          <span class="bottom">F8</span>
-        </button>
-        <button class="key dual">
-          <span class="top">
-            <svg style="inline-size: 20px; block-size: 20px;">
-              <use href="#icon-forward"></use>
-            </svg>
-          </span>
-          <span class="bottom">F9</span>
-        </button>
-        <button class="key dual">
-          <span class="top">
-            <svg style="inline-size: 12px; block-size: 20px;">
-              <use href="#icon-speaker"></use>
-            </svg>
-          </span>
-          <span class="bottom">F10</span>
-        </button>
-        <button class="key dual">
-          <span class="top">
-            <svg style="inline-size: 16px; block-size: 20px;">
-              <use href="#icon-speaker-down"></use>
-            </svg>
-          </span>
-          <span class="bottom">F11</span>
-        </button>
-        <button class="key dual">
-          <span class="top">
-            <svg style="inline-size: 24px; block-size: 20px;">
-              <use href="#icon-speaker-up"></use>
-            </svg>
-          </span>
-          <span class="bottom">F12</span>
-        </button>
-        <button class="key" id="closeFullKeyboard">
-          <svg style="inline-size: 30px; block-size: 24px;">
-            <use href="#icon-keyboard-close"></use>
-          </svg>
-        </button>
-      </div>
-      <div class="row">
-        <button class="key dual fluid" data-n="`" data-s="~">
-          <span class="top">~</span>
-          <span class="bottom">`</span>
-        </button>
-        <button class="key dual" data-n="1" data-s="!">
-          <span class="top">!</span>
-          <span class="bottom">1</span>
-        </button>
-        <button class="key dual" data-n="2" data-s="@">
-          <span class="top">@</span>
-          <span class="bottom">2</span>
-        </button>
-        <button class="key dual" data-n="3" data-s="#">
-          <span class="top">#</span>
-          <span class="bottom">3</span>
-        </button>
-        <button class="key dual" data-n="4" data-s="$">
-          <span class="top">$</span>
-          <span class="bottom">4</span>
-        </button>
-        <button class="key dual" data-n="5" data-s="%">
-          <span class="top">%</span>
-          <span class="bottom">5</span>
-        </button>
-        <button class="key dual" data-n="6" data-s="^">
-          <span class="top">^</span>
-          <span class="bottom">6</span>
-        </button>
-        <button class="key dual" data-n="7" data-s="&">
-          <span class="top">&</span>
-          <span class="bottom">7</span>
-        </button>
-        <button class="key dual" data-n="8" data-s="*">
-          <span class="top">*</span>
-          <span class="bottom">8</span>
-        </button>
-        <button class="key dual" data-n="9" data-s="(">
-          <span class="top">(</span>
-          <span class="bottom">9</span>
-        </button>
-        <button class="key dual" data-n="0" data-s=")">
-          <span class="top">)</span>
-          <span class="bottom">0</span>
-        </button>
-        <button class="key dual" data-n="-" data-s="_">
-          <span class="top">_</span>
-          <span class="bottom">-</span>
-        </button>
-        <button class="key dual" data-n="=" data-s="+">
-          <span class="top">+</span>
-          <span class="bottom">=</span>
-        </button>
-        <button class="key one-and-half label right">delete</button>
-      </div>
-      <div class="row">
-        <button class="key fluid label left" data-n="q" data-s="Q">tab</button>
-        <button class="key letter" data-n="q" data-s="Q">q</button>
-        <button class="key letter" data-n="w" data-s="W">w</button>
-        <button class="key letter" data-n="e" data-s="E">e</button>
-        <button class="key letter" data-n="r" data-s="R">r</button>
-        <button class="key letter" data-n="t" data-s="T">t</button>
-        <button class="key letter" data-n="y" data-s="Y">y</button>
-        <button class="key letter" data-n="u" data-s="U">u</button>
-        <button class="key letter" data-n="i" data-s="I">i</button>
-        <button class="key letter" data-n="o" data-s="O">o</button>
-        <button class="key letter" data-n="p" data-s="P">p</button>
-        <button class="key dual" data-n="[" data-s="{">
-          <span class="top">{</span>
-          <span class="bottom">[</span>
-        </button>
-        <button class="key dual" data-n="]" data-s="}">
-          <span class="top">}</span>
-          <span class="bottom">]</span>
-        </button>
-        <button class="key dual" data-n="\" data-s="|">
-          <span class="top">|</span>
-          <span class="bottom">\</span>
-        </button>
-      </div>
-      <div class="row">
-        <button class="key fluid label left">
-          <span>caps lock</span>
-          <div style="width: 4px; height: 4px; border-radius: 50%; background-color: currentColor"></div>
-        </button>
-        <button class="key letter" data-n="a" data-s="A">a</button>
-        <button class="key letter" data-n="s" data-s="S">s</button>
-        <button class="key letter" data-n="d" data-s="D">d</button>
-        <button class="key letter" data-n="f" data-s="F">f</button>
-        <button class="key letter" data-n="g" data-s="G">g</button>
-        <button class="key letter" data-n="h" data-s="H">h</button>
-        <button class="key letter" data-n="j" data-s="J">j</button>
-        <button class="key letter" data-n="k" data-s="K">k</button>
-        <button class="key letter" data-n="l" data-s="L">l</button>
-        <button class="key dual" data-n=";" data-s=";">
-          <span class="top">:</span>
-          <span class="bottom">;</span>
-        </button>
-        <button class="key dual" data-n="'" data-s='"'>
-          <span class="top">"</span>
-          <span class="bottom">'</span>
-        </button>
-        <button class="key one-and-half label right" data-n="\n">return</button>
-      </div>
-      <div class="row">
-        <button class="key fluid label left">shift</button>
-        <button class="key letter" data-n="z" data-s="Z">z</button>
-        <button class="key letter" data-n="x" data-s="X">x</button>
-        <button class="key letter" data-n="c" data-s="C">c</button>
-        <button class="key letter" data-n="v" data-s="V">v</button>
-        <button class="key letter" data-n="b" data-s="B">b</button>
-        <button class="key letter" data-n="n" data-s="N">n</button>
-        <button class="key letter" data-n="m" data-s="M">m</button>
-        <button class="key dual" data-n="," data-s="<">
-          <span class="top">&lt;</span>
-          <span class="bottom">,</span>
-        </button>
-        <button class="key dual" data-n="." data-s=">">
-          <span class="top">&gt;</span>
-          <span class="bottom">.</span>
-        </button>
-        <button class="key dual" data-n="/" data-s="?">
-          <span class="top">?</span>
-          <span class="bottom">/</span>
-        </button>
-        <button class="key">↑</button>
-        <button class="key label right">shift</button>
-      </div>
-      <div class="row">
-        <button class="key label left">fn</button>
-        <button class="key label left">
-          <span class="key-label-long">control</span>
-          <span class="key-label-short">ctrl</span>
-          <svg style="inline-size: 18px; block-size: 16px;">
-            <use href="#icon-ctrl"></use>
-          </svg>
-        </button>
-        <button class="key label left">
-          <span class="key-label-long">option</span>
-          <span class="key-label-short">opt</span>
-          <svg style="inline-size: 20px; block-size: 16px;">
-            <use href="#icon-opt"></use>
-          </svg>
-        </button>
-        <button class="key cmd label left">
-          <span class="key-label-long">command</span>
-          <span class="key-label-short">cmd</span>
-          <svg style="inline-size: 20px; block-size: 16px;">
-            <use href="#icon-cmd"></use>
-          </svg>
-        </button>
-        <button class="key fluid" data-n=" " data-s=" "></button>
-        <button class="key cmd label right">
-          <span class="key-label-long">command</span>
-          <span class="key-label-short">cmd</span>
-          <svg style="inline-size: 20px; block-size: 16px;">
-            <use href="#icon-cmd"></use>
-          </svg>
-        </button>
-        <button class="key label right">
-          <span class="key-label-long">option</span>
-          <span class="key-label-short">opt</span>
-          <svg style="inline-size: 20px; block-size: 16px;">
-            <use href="#icon-opt"></use>
-          </svg>
-        </button>
-        <button class="key">←</button>
-        <button class="key">↓</button>
-        <button class="key">→</button>
-      </div>
-    </aside>
     <div id="drawer-overlay" class="hidden"></div>
     <aside id="settings-drawer">
       <div id="drawer-header">
         <h1 id="drawer-title">Settings</h1>
         <button id="drawer-close">
-          <svg style="inline-size: 20px; block-size: 20px;">
+          <svg style="inline-size: 20px; block-size: 20px">
             <use href="#icon-close"></use>
           </svg>
         </button>
@@ -1932,6 +1973,30 @@
     </aside>
     <script>
       window.addEventListener("contextmenu", (e) => e.preventDefault());
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+      const playKeyClick = () => {
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(600, now);
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.2, now + 0.001);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.01);
+      };
+
+      const resumeAudio = () => {
+        if (audioCtx.state === "suspended") audioCtx.resume();
+      };
+
+      document.addEventListener("touchstart", resumeAudio, { passive: true });
+      document.addEventListener("click", resumeAudio, { passive: true });
 
       const status = document.getElementById("reconnect");
       let socket;
@@ -1953,40 +2018,46 @@
        * ==================================== */
 
       let connectingPromise = null;
-
       const connectWebSocket = () => {
         if (connectingPromise) return connectingPromise;
-        // const statusText = document.createElement("div");
-        // statusText.classList.add("status-text");
-        // statusText.innerText = "CONNECTING";
-        // document.body.appendChild(statusText);
         connectingPromise = new Promise((resolve, reject) => {
           socket = new WebSocket(`ws://${location.host}/`);
 
           socket.addEventListener("open", () => {
             status.style.color = "#22c55e";
-            // statusText.style.color = "#22c55e";
-            // statusText.innerText = "CONNECTED";
-            // setTimeout(() => statusText.remove(), 1000);
             connectingPromise = null;
             resolve();
           });
 
           socket.addEventListener("close", () => {
             status.style.color = "#f87171";
-            // statusText.innerText = "NOT CONNECTED";
-            // setTimeout(() => statusText.remove(), 1000);
-            // statusText.style.color = "#f87171";
             connectingPromise = null;
           });
 
           socket.addEventListener("error", () => {
             status.style.color = "#f87171";
-            // statusText.style.color = "#f87171";
-            // statusText.innerText = "NOT CONNECTED";
-            // setTimeout(() => statusText.remove(), 1000);
             connectingPromise = null;
             reject();
+          });
+          socket.addEventListener("message", (event) => {
+            let payload;
+            try {
+              payload = JSON.parse(event.data);
+            } catch {
+              return;
+            }
+            if (payload.type === "state") {
+              if (payload.volume !== undefined) {
+                const volumeSlider = document.querySelector('.slider[data-control="setVolume"]');
+                if (volumeSlider) {
+                  volumeSlider.dataset.value = payload.volume;
+                  const fill = volumeSlider.querySelector(".slider-fill");
+                  if (fill) {
+                    fill.style.height = payload.volume + "%";
+                  }
+                }
+              }
+            }
           });
         });
 
@@ -1996,9 +2067,13 @@
       connectWebSocket();
       const checkAndReconnectWebSocket = () => socket?.readyState !== WebSocket.OPEN && connectWebSocket();
       window.addEventListener("visibilitychange", () => document.visibilityState === "visible" && checkAndReconnectWebSocket());
+
       const send = (payload) => {
         console.log("Sending command:", payload);
-        const sendAction = () => socket.send(JSON.stringify(payload));
+        const sendAction = () => {
+          if (!["move", "dragMove", "scroll"].includes(payload.type)) playKeyClick();
+          socket.send(JSON.stringify(payload));
+        };
         if (socket?.readyState === WebSocket.OPEN) {
           try {
             sendAction();
@@ -2011,32 +2086,6 @@
           connectWebSocket().then(sendAction);
         }
       };
-
-      /* ====================================
-       * Incoming message handling
-       * ==================================== */
-      socket.addEventListener("message", (event) => {
-        let payload;
-
-        try {
-          payload = JSON.parse(event.data);
-        } catch {
-          return;
-        }
-
-        if (payload.type === "state") {
-          if (payload.volume !== undefined) {
-            const volumeSlider = document.querySelector('.slider[data-control="setVolume"]');
-            if (volumeSlider) {
-              volumeSlider.dataset.value = payload.volume;
-              const fill = volumeSlider.querySelector(".slider-fill");
-              if (fill) {
-                fill.style.height = payload.volume + "%";
-              }
-            }
-          }
-        }
-      });
 
       /* ====================================
        * Initialize the tabs
@@ -2111,6 +2160,7 @@
        * ==================================== */
       document.querySelectorAll("[data-modifier]").forEach((button) => {
         button.addEventListener("click", () => {
+          playKeyClick();
           const mod = button.dataset.modifier;
           modifiers[mod] = !modifiers[mod];
           button.classList.toggle("active", modifiers[mod]);
@@ -2174,88 +2224,6 @@
       });
 
       /* ====================================
-       * Initialize the text cursor pad
-       * ==================================== */
-      const HORIZONTAL_STEP_SIZE = 6;
-      const VERTICAL_STEP_SIZE = 16;
-
-      let isCursorSelecting = false;
-      let cursorHoldTimer = null;
-      const CURSOR_HOLD_DURATION = 350;
-      let textCursorLastX = null;
-      let textCursorLastY = null;
-      const onTouchMove = (e) => {
-        e.stopPropagation();
-        if (cursorHoldTimer) {
-          clearTimeout(cursorHoldTimer);
-          cursorHoldTimer = null;
-        }
-        const t = e.touches[0];
-
-        const x = t.clientX;
-        const y = t.clientY;
-
-        if (textCursorLastX === null || textCursorLastY === null) {
-          textCursorLastX = x;
-          textCursorLastY = y;
-          return;
-        }
-
-        const rawDx = x - textCursorLastX;
-        const rawDy = y - textCursorLastY;
-        const isVerticalRL = document.body.classList.contains("vertical-rl");
-        const dx = isVerticalRL ? rawDy : rawDx;
-        const dy = isVerticalRL ? -rawDx : rawDy;
-
-        if (Math.abs(dx) > HORIZONTAL_STEP_SIZE / cursorpadSensitivity || Math.abs(dy) > VERTICAL_STEP_SIZE / cursorpadSensitivity) {
-          let direction;
-
-          if (Math.abs(dx) > Math.abs(dy)) {
-            direction = dx > 0 ? "right" : "left";
-          } else {
-            direction = dy > 0 ? "down" : "up";
-          }
-          send({
-            type: "key",
-            key: isCursorSelecting ? `shift+${direction}` : direction,
-          });
-          textCursorLastX = x;
-          textCursorLastY = y;
-        }
-      };
-
-      const resetTouch = () => {
-        if (cursorHoldTimer) {
-          clearTimeout(cursorHoldTimer);
-          cursorHoldTimer = null;
-        }
-        isCursorSelecting = false;
-        cursorPad.classList.remove("select-mode");
-        textCursorLastX = null;
-        textCursorLastY = null;
-      };
-      const cursorPad = document.getElementById("cursorPad");
-      cursorPad.addEventListener(
-        "touchstart",
-        (e) => {
-          e.stopPropagation();
-          isCursorSelecting = false;
-          textCursorLastX = null;
-          textCursorLastY = null;
-          if (cursorHoldTimer) clearTimeout(cursorHoldTimer);
-          cursorHoldTimer = setTimeout(() => {
-            cursorHoldTimer = null;
-            isCursorSelecting = true;
-            cursorPad.classList.add("select-mode");
-          }, CURSOR_HOLD_DURATION);
-        },
-        { passive: true },
-      );
-      cursorPad.addEventListener("touchmove", onTouchMove, { passive: true });
-      cursorPad.addEventListener("touchend", resetTouch);
-      cursorPad.addEventListener("touchcancel", resetTouch);
-
-      /* ====================================
        * Initialize the text input
        * ==================================== */
       const sendText = document.getElementById("sendText");
@@ -2271,40 +2239,31 @@
        * Initialize the full keyboard
        * ==================================== */
       const fullKeyboard = document.getElementById("fullKeyboard");
-      const closeFullKeyboard = document.getElementById("closeFullKeyboard");
-      const buttonsWrapper = document.getElementById("buttons-wrapper");
-      const keyboard = document.getElementById("keyboard");
+      const tabWrapper = document.getElementById("tab-wrapper");
+      const keyboardWrapper = document.getElementById("keyboard-wrapper");
       function showFullKeyboard() {
-        buttonsWrapper.classList.add("hidden");
-        keyboard.classList.remove("hidden");
+        tabWrapper.classList.add("hidden");
+        keyboardWrapper.classList.remove("hidden");
         localStorage.setItem("layout", "keyboard");
         reorganizeLayout();
       }
       function showButtonsWrapper() {
-        keyboard.classList.add("hidden");
-        buttonsWrapper.classList.remove("hidden");
+        keyboardWrapper.classList.add("hidden");
+        tabWrapper.classList.remove("hidden");
         localStorage.setItem("layout", "buttons");
+        releaseKbModifiers();
         reorganizeLayout();
       }
       const reorganizeLayout = () => {
         const aspectRatio = window.innerWidth / window.innerHeight;
-        if (!keyboard.classList.contains("hidden") && aspectRatio < 1 && window.innerWidth < 768) {
+        if (!keyboardWrapper.classList.contains("hidden") && aspectRatio < 1 && window.innerWidth < 480) {
           document.body.classList.add("vertical-rl");
         } else {
           document.body.classList.remove("vertical-rl");
         }
+      };
 
-        const touchpad = document.getElementById("touchpad-wrapper");
-        const header = document.getElementsByTagName("header")[0];
-        const headerClasslist = header.classList;
-        headerClasslist.remove("mini");
-        if (!keyboard.classList.contains("hidden") && (touchpad.clientHeight < 32 || (touchpad.clientHeight > 82 && touchpad.clientHeight < 150))) {
-          headerClasslist.add("mini");
-        }
-      }
-      
       fullKeyboard.addEventListener("click", showFullKeyboard);
-      closeFullKeyboard.addEventListener("click", showButtonsWrapper);
       if (localStorage.getItem("layout") === "keyboard") {
         showFullKeyboard();
       }
@@ -2321,145 +2280,572 @@
       /* ====================================
        * Initialize the touch surface
        * ==================================== */
-      const attachTouchSurface = (element, moveType) => {
-        let startTouches = [];
-        let lastPoint = null;
-        let moved = false;
-        let tapCount = 0;
-        let lastTapTime = 0;
-        let tapTimeout = null;
-        let isDragging = false;
-        let holdTimer = null;
-        const HOLD_DURATION = 350;
-        const DRAG_CANCEL_THRESHOLD = 8;
+      /**
+       * touchTracker — unified gesture recogniser
+       * Abstracts all touch interaction into a single reusable function.
+       * Handles: tap, hold, swipe, drag, scroll (two finger),
+       *          direction, speed, distance, orientation awareness.
+       *
+       * @param {HTMLElement} element — target element
+       * @param {Object} options — configuration
+       * @param {Function} callback — gesture handler
+       */
+      const touchTracker = (element, options = {}, callback) => {
+        const {
+          // Thresholds
+          tapTimeout = 200, // ms window for multi-tap detection
+          holdDuration = 350, // ms before hold is triggered
+          dragThreshold = 8, // px movement before tap is cancelled
+          swipeThreshold = 30, // px minimum for a swipe to register
+          swipeMaxDuration = 400, // ms maximum for a swipe gesture
+          swipeAngleTolerance = 45, // degrees tolerance for cardinal direction lock
 
-        element.addEventListener(
-          "touchstart",
-          (event) => {
-            event.preventDefault();
-            startTouches = Array.from(event.touches).map((touch) => ({
-              x: touch.clientX,
-              y: touch.clientY,
-            }));
-            lastPoint = startTouches[0] || null;
-            moved = false;
-            isDragging = false;
-            if (holdTimer) clearTimeout(holdTimer);
-            holdTimer = setTimeout(() => {
-              holdTimer = null;
-              isDragging = true;
-              element.classList.add("drag-mode");
-              send({ type: "mouseDown", button: "left" });
-            }, HOLD_DURATION);
-          },
-          { passive: false },
-        );
+          // Behaviour flags
+          cancelTapOnMove = true, // tap cancelled if pointer moves beyond dragThreshold
+          detectTwoFinger = true, // enable two-finger gesture detection
+          detectSwipe = true, // enable swipe detection
+          detectHold = true, // enable hold detection
+          detectDrag = true, // enable drag (hold + move) detection
+          orientationAware = true, // auto-rotate dx/dy for vertical-rl layouts
+        } = options;
 
-        element.addEventListener(
-          "touchmove",
-          (event) => {
-            event.preventDefault();
-            const touches = Array.from(event.touches);
-            if (!touches.length) {
-              return;
+        // ── Internal state ──────────────────────────────────────────────────────────
+        let touches = []; // active touch start positions
+        let lastPoint = null; // last tracked position
+        let tapCount = 0; // consecutive tap counter
+        let lastTapTime = 0; // timestamp of last tap end
+        let tapTimer = null; // debounce timer for tap resolution
+        let holdTimer = null; // timer for hold detection
+        let swipeStartTime = 0; // timestamp of touch start (for swipe duration)
+        let isDragging = false; // drag mode active
+        let hasMoved = false; // has moved beyond dragThreshold
+        let isHeld = false; // hold has fired
+
+        // ── Orientation transform ───────────────────────────────────────────────────
+        const transformCoords = (dx, dy) => {
+          if (!orientationAware) return { dx, dy };
+          const isVerticalRL = document.body.classList.contains("vertical-rl");
+          return isVerticalRL ? { dx: dy, dy: -dx } : { dx, dy };
+        };
+
+        // ── Direction resolver ──────────────────────────────────────────────────────
+        const resolveDirection = (dx, dy) => {
+          const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+          const abs = Math.abs;
+
+          if (abs(dx) > abs(dy)) {
+            if (abs(angle) < swipeAngleTolerance || abs(angle) > 180 - swipeAngleTolerance) {
+              return dx > 0 ? "right" : "left";
             }
+          } else {
+            if (abs(angle - 90) < swipeAngleTolerance || abs(angle + 90) < swipeAngleTolerance) {
+              return dy > 0 ? "down" : "up";
+            }
+          }
 
-            if (touches.length === 1) {
-              const point = { x: touches[0].clientX, y: touches[0].clientY };
-              if (holdTimer && startTouches.length) {
-                const tdx = Math.abs(point.x - startTouches[0].x);
-                const tdy = Math.abs(point.y - startTouches[0].y);
-                if (tdx > DRAG_CANCEL_THRESHOLD || tdy > DRAG_CANCEL_THRESHOLD) {
-                  clearTimeout(holdTimer);
-                  holdTimer = null;
+          // diagonal fallback
+          if (dx > 0 && dy < 0) return "up-right";
+          if (dx < 0 && dy < 0) return "up-left";
+          if (dx > 0 && dy > 0) return "down-right";
+          return "down-left";
+        };
+
+        // ── Speed calculator ────────────────────────────────────────────────────────
+        const calcSpeed = (dx, dy, dt) => {
+          if (dt === 0) return 0;
+          return Math.sqrt(dx * dx + dy * dy) / dt; // px/ms
+        };
+
+        // ── Cleanup ─────────────────────────────────────────────────────────────────
+        const reset = () => {
+          clearTimeout(holdTimer);
+          clearTimeout(tapTimer);
+          holdTimer = null;
+          isDragging = false;
+          hasMoved = false;
+          isHeld = false;
+          lastPoint = null;
+          touches = [];
+        };
+
+        // ── Emit ─────────────────────────────────────────────────────────────────────
+        const emit = (type, payload = {}) => {
+          callback({ type, ...payload });
+        };
+
+        // ── Touch start ──────────────────────────────────────────────────────────────
+        const onStart = (e) => {
+          touches = Array.from(e.touches).map((t) => ({
+            x: t.clientX,
+            y: t.clientY,
+            id: t.identifier,
+          }));
+
+          lastPoint = { x: touches[0].x, y: touches[0].y };
+          hasMoved = false;
+          isDragging = false;
+          isHeld = false;
+          swipeStartTime = Date.now();
+
+          clearTimeout(holdTimer);
+
+          if ((detectHold || detectDrag) && touches.length === 1) {
+            holdTimer = setTimeout(() => {
+              if (!hasMoved || !cancelTapOnMove) {
+                isHeld = true;
+                playKeyClick();
+                if (detectDrag) {
+                  isDragging = true;
+                  emit("dragStart", {
+                    x: touches[0].x,
+                    y: touches[0].y,
+                  });
+                } else {
+                  emit("hold", {
+                    x: touches[0].x,
+                    y: touches[0].y,
+                  });
                 }
               }
-              if (lastPoint) {
-                const rawDx = (point.x - lastPoint.x) * touchpadSensitivity;
-                const rawDy = (point.y - lastPoint.y) * touchpadSensitivity;
-                const isVerticalRL = document.body.classList.contains("vertical-rl");
-                send({
-                  type: isDragging ? "dragMove" : moveType,
-                  dx: isVerticalRL ? rawDy : rawDx,
-                  dy: isVerticalRL ? -rawDx : rawDy,
-                });
-                moved = true;
-              }
-              lastPoint = point;
-              return;
-            }
+            }, holdDuration);
+          }
+        };
 
-            if (touches.length >= 2) {
-              const average = {
-                x: (touches[0].clientX + touches[1].clientX) / 2,
-                y: (touches[0].clientY + touches[1].clientY) / 2,
-              };
-              if (lastPoint) {
-                const rawDx = (average.x - lastPoint.x) * scrollSensitivity;
-                const rawDy = (average.y - lastPoint.y) * scrollSensitivity;
-                const isVerticalRL = document.body.classList.contains("vertical-rl");
-                send({
-                  type: "scroll",
-                  dx: isVerticalRL ? rawDy : rawDx,
-                  dy: isVerticalRL ? -rawDx : rawDy,
-                });
-                moved = true;
-              }
-              lastPoint = average;
-            }
-          },
-          { passive: false },
-        );
+        // ── Touch move ───────────────────────────────────────────────────────────────
+        const onMove = (e) => {
+          const currentTouches = Array.from(e.touches);
+          if (!currentTouches.length || !lastPoint) return;
 
-        element.addEventListener(
-          "touchend",
-          (event) => {
-            event.preventDefault();
-            if (holdTimer) {
+          // ── Two finger (scroll) ────────────────────────────────────────────────
+          if (detectTwoFinger && currentTouches.length >= 2) {
+            const avg = {
+              x: (currentTouches[0].clientX + currentTouches[1].clientX) / 2,
+              y: (currentTouches[0].clientY + currentTouches[1].clientY) / 2,
+            };
+
+            const rawDx = avg.x - lastPoint.x;
+            const rawDy = avg.y - lastPoint.y;
+            const { dx, dy } = transformCoords(rawDx, rawDy);
+            const dt = Date.now() - swipeStartTime;
+
+            emit("twoFingerMove", {
+              dx,
+              dy,
+              x: avg.x,
+              y: avg.y,
+              speed: calcSpeed(dx, dy, dt),
+              direction: resolveDirection(dx, dy),
+            });
+
+            lastPoint = avg;
+            return;
+          }
+
+          // ── Single finger ──────────────────────────────────────────────────────
+          const point = { x: currentTouches[0].clientX, y: currentTouches[0].clientY };
+          const rawDx = point.x - lastPoint.x;
+          const rawDy = point.y - lastPoint.y;
+          const { dx, dy } = transformCoords(rawDx, rawDy);
+          const dt = Date.now() - swipeStartTime;
+          const dist = Math.sqrt(rawDx * rawDx + rawDy * rawDy);
+
+          if (dist > dragThreshold) {
+            hasMoved = true;
+
+            // cancel hold if movement exceeds threshold before hold fires
+            if (cancelTapOnMove && holdTimer && !isHeld) {
               clearTimeout(holdTimer);
               holdTimer = null;
             }
-            if (isDragging) {
-              isDragging = false;
-              element.classList.remove("drag-mode");
-              send({ type: "mouseUp", button: "left" });
-              startTouches = [];
-              lastPoint = null;
+          }
+
+          if (isDragging) {
+            emit("dragMove", {
+              dx,
+              dy,
+              x: point.x,
+              y: point.y,
+              speed: calcSpeed(dx, dy, dt),
+              direction: resolveDirection(dx, dy),
+            });
+          } else if (hasMoved) {
+            emit("move", {
+              dx,
+              dy,
+              x: point.x,
+              y: point.y,
+              speed: calcSpeed(dx, dy, dt),
+              direction: resolveDirection(dx, dy),
+            });
+          }
+
+          lastPoint = point;
+        };
+
+        // ── Touch end ────────────────────────────────────────────────────────────────
+        const onEnd = (e) => {
+          clearTimeout(holdTimer);
+          holdTimer = null;
+
+          const endTime = Date.now();
+          const duration = endTime - swipeStartTime;
+
+          // ── Drag end ───────────────────────────────────────────────────────────
+          if (isDragging) {
+            isDragging = false;
+            emit("dragEnd", {
+              x: lastPoint?.x,
+              y: lastPoint?.y,
+            });
+            reset();
+            return;
+          }
+
+          // ── Swipe ──────────────────────────────────────────────────────────────
+          if (detectSwipe && hasMoved && duration < swipeMaxDuration && touches.length === 1 && lastPoint) {
+            const totalDx = lastPoint.x - touches[0].x;
+            const totalDy = lastPoint.y - touches[0].y;
+            const totalDist = Math.sqrt(totalDx * totalDx + totalDy * totalDy);
+
+            if (totalDist >= swipeThreshold) {
+              const { dx, dy } = transformCoords(totalDx, totalDy);
+              emit("swipe", {
+                dx,
+                dy,
+                distance: totalDist,
+                duration,
+                direction: resolveDirection(dx, dy),
+                speed: calcSpeed(dx, dy, duration),
+                startX: touches[0].x,
+                startY: touches[0].y,
+                endX: lastPoint.x,
+                endY: lastPoint.y,
+              });
+              reset();
               return;
             }
-            if (!moved && startTouches.length === 1 && event.touches.length === 0) {
-              const now = Date.now();
-              if (now - lastTapTime > 200) {
-                tapCount = 1;
-              } else {
-                tapCount++;
-              }
-              lastTapTime = now;
+          }
 
-              if (tapTimeout) {
-                clearTimeout(tapTimeout);
-              }
+          // ── Tap ────────────────────────────────────────────────────────────────
+          if (!hasMoved && touches.length === 1 && e.touches.length === 0) {
+            emit("tap", {
+              x: touches[0]?.x,
+              y: touches[0]?.y,
+              duration,
+            });
+          }
 
-              tapTimeout = setTimeout(() => {
-                if (tapCount === 1) {
-                  send({ type: "click", button: "left" });
-                } else if (tapCount === 2) {
-                  send({ type: "doubleClick", button: "left" });
-                } else if (tapCount === 3) {
-                  send({ type: "tripleClick", button: "left" });
-                }
-                tapCount = 0;
-              }, 200);
-            }
-            startTouches = [];
-            lastPoint = null;
-          },
-          { passive: false },
-        );
+          reset();
+        };
+
+        // ── Cancel ───────────────────────────────────────────────────────────────────
+        const onCancel = (e) => {
+          if (isDragging) {
+            emit("dragEnd", { cancelled: true });
+          }
+          reset();
+        };
+
+        // ── Attach listeners ─────────────────────────────────────────────────────────
+        element.addEventListener("touchstart", onStart, { passive: false });
+        element.addEventListener("touchmove", onMove, { passive: false });
+        element.addEventListener("touchend", onEnd, { passive: false });
+        element.addEventListener("touchcancel", onCancel, { passive: false });
+
+        // ── Return detach function ───────────────────────────────────────────────────
+        return () => {
+          element.removeEventListener("touchstart", onStart);
+          element.removeEventListener("touchmove", onMove);
+          element.removeEventListener("touchend", onEnd);
+          element.removeEventListener("touchcancel", onCancel);
+          reset();
+        };
       };
 
-      attachTouchSurface(document.getElementById("touchpad"), "move");
+      const touchpadEl = document.getElementById("touchpad");
+      touchTracker(
+        touchpadEl,
+        {
+          detectDrag: true,
+          detectTwoFinger: true,
+          detectSwipe: false,
+        },
+        ({ type, dx, dy, count, direction }) => {
+          switch (type) {
+            case "move":
+              send({ type: "move", dx: dx * touchpadSensitivity, dy: dy * touchpadSensitivity });
+              break;
+            case "twoFingerMove":
+              send({ type: "scroll", dx: dx * scrollSensitivity, dy: dy * scrollSensitivity });
+              break;
+            case "tap":
+              send({ type: "click", button: "left" });
+              break;
+            case "dragStart":
+              touchpadEl.classList.add("drag-mode");
+              send({ type: "mouseDown", button: "left" });
+              break;
+            case "dragMove":
+              send({ type: "dragMove", dx: dx * touchpadSensitivity, dy: dy * touchpadSensitivity });
+              break;
+            case "dragEnd":
+              touchpadEl.classList.remove("drag-mode");
+              send({ type: "mouseUp", button: "left" });
+              break;
+          }
+        },
+      );
 
+      const cursorPadEl = document.getElementById("cursorPad");
+      const BASE_PIXELS_PER_KEY = 12;
+
+      let cursorAccX = 0;
+      let cursorAccY = 0;
+
+      const resetCursorAcc = () => {
+        cursorAccX = 0;
+        cursorAccY = 0;
+      };
+
+      touchTracker(
+        cursorPadEl,
+        {
+          detectDrag: true,
+          detectTwoFinger: false,
+          detectSwipe: false,
+        },
+        ({ type, dx, dy, direction }) => {
+          if (direction?.includes("-")) return;
+
+          switch (type) {
+            case "move":
+            case "dragMove": {
+              const threshold = BASE_PIXELS_PER_KEY / cursorpadSensitivity;
+              cursorAccX += dx;
+              cursorAccY += dy;
+
+              const key = type === "dragMove" ? `shift+${direction}` : direction;
+
+              while (Math.abs(cursorAccX) >= threshold) {
+                send({ type: "key", key: cursorAccX > 0 ? (type === "dragMove" ? "shift+right" : "right") : type === "dragMove" ? "shift+left" : "left" });
+                cursorAccX += cursorAccX > 0 ? -threshold : threshold;
+              }
+              while (Math.abs(cursorAccY) >= threshold) {
+                send({ type: "key", key: cursorAccY > 0 ? (type === "dragMove" ? "shift+down" : "down") : type === "dragMove" ? "shift+up" : "up" });
+                cursorAccY += cursorAccY > 0 ? -threshold : threshold;
+              }
+              break;
+            }
+            case "dragStart":
+              resetCursorAcc();
+              cursorPadEl.classList.add("select-mode");
+              break;
+            case "dragEnd":
+              resetCursorAcc();
+              cursorPadEl.classList.remove("select-mode");
+              break;
+          }
+        },
+      );
+
+      let isKeyboardSwapped = false;
+      const keyboardControlButtonEl = document.getElementById("closeFullKeyboard");
+      keyboardControlButtonEl.addEventListener("click", () => showButtonsWrapper());
+      const touchpadWrapper = document.getElementById("touchpad-wrapper");
+      touchTracker(
+        keyboardControlButtonEl,
+        {
+          detectDrag: false,
+          detectTwoFinger: false,
+          detectSwipe: true,
+          swipeThreshold: 20,
+          holdDuration: 300,
+        },
+        ({ type, direction }) => {
+          switch (type) {
+            case "tap":
+              showButtonsWrapper();
+              break;
+            case "swipe":
+              if (direction === "up") {
+                if (keyboardWrapper.classList.contains("mini")) {
+                  keyboardWrapper.classList.remove("mini");
+                } else if (!isKeyboardSwapped) {
+                  keyboardWrapper.classList.add("swapped");
+                  touchpadWrapper.classList.add("swapped");
+                  isKeyboardSwapped = true;
+                }
+              } else if (direction === "down") {
+                if (isKeyboardSwapped) {
+                  keyboardWrapper.classList.remove("swapped");
+                  touchpadWrapper.classList.remove("swapped");
+                  isKeyboardSwapped = false;
+                } else if (!keyboardWrapper.classList.contains("mini")) {
+                  keyboardWrapper.classList.add("mini");
+                  releaseKbModifiers();
+                }
+              }
+              break;
+            case "hold":
+              // future use
+              break;
+          }
+        },
+      );
+
+      /* ====================================
+       * Keyboard state
+       * ==================================== */
+      const kb = {
+        shift: false, // sticky — releases after one printable key
+        caps: false, // toggle — persists
+        fn: false, // toggle — switches fn row to F keys
+        ctrl: false, // held — sends kb:down / kb:up (future)
+        opt: false, // held — sends kb:down / kb:up (future)
+        cmd: false, // held — sends kb:down / kb:up (future)
+      };
+
+      const kbSend = (payload) => {
+        const isPrintable = payload.key?.length === 1;
+        const nonShiftModifierActive = kb.cmd || kb.opt || kb.ctrl;
+        if (nonShiftModifierActive && payload.key === " ") payload.key = "space";
+        send({
+          ...payload,
+          flags: {
+            shift: isPrintable && !nonShiftModifierActive ? false : kb.shift,
+            ctrl: kb.ctrl,
+            opt: kb.opt,
+            cmd: kb.cmd,
+          },
+        });
+      };
+      /* ====================================
+       * Keyboard UI helpers
+       * ==================================== */
+      const kbEl = document.getElementById("keyboard-wrapper");
+
+      const updateKbModifierUI = () => {
+        // Shift visual
+        kbEl.querySelectorAll('[data-kb-modifier="shift"]').forEach((b) => b.classList.toggle("active", kb.shift));
+
+        // Caps visual — also drives letter case via CSS
+        kbEl.querySelectorAll('[data-kb-modifier="caps"]').forEach((b) => b.classList.toggle("active", kb.caps));
+        kbEl.classList.toggle("caps-active", kb.caps);
+
+        // Fn visual
+        kbEl.querySelectorAll('[data-kb-modifier="fn"]').forEach((b) => b.classList.toggle("active", kb.fn));
+
+        // Modifier visuals
+        ["ctrl", "opt", "cmd"].forEach((mod) => {
+          kbEl.querySelectorAll(`[data-kb-modifier="${mod}"]`).forEach((b) => b.classList.toggle("active", kb[mod]));
+        });
+
+        // Letter case driven by shift OR caps — but caps doesn't affect symbols
+        kbEl.classList.toggle("shift-active", kb.shift || kb.caps);
+      };
+      /* ====================================
+       * Keyboard modifier clear
+       * ==================================== */
+
+      const releaseKbModifiers = () => {
+        kb.shift = false;
+        kb.caps = false;
+        kb.fn = false;
+        kb.ctrl = false;
+        kb.opt = false;
+        kb.cmd = false;
+        updateKbModifierUI();
+        // when Swift keydown/keyup is ready, send keyup for held modifiers here
+      };
+
+      /* ====================================
+       * Shift auto-release
+       * ==================================== */
+      const releaseShift = () => {
+        if (kb.shift) {
+          kb.shift = false;
+          updateKbModifierUI();
+        }
+      };
+
+      /* ====================================
+       * Key dispatch
+       * ==================================== */
+      const handleKbKey = (button) => {
+        const { kbModifier, action, key, n, s } = button.dataset;
+
+        // ── Modifier ────────────────────────────────────────────────────────────
+        if (kbModifier) {
+          playKeyClick();
+          switch (kbModifier) {
+            case "shift":
+              kb.shift = !kb.shift;
+              break;
+            case "caps":
+              kb.caps = !kb.caps;
+              console.log(kb);
+              break;
+            case "fn":
+              kb.fn = !kb.fn;
+              break;
+            case "ctrl":
+            case "opt":
+            case "cmd":
+              kb[kbModifier] = !kb[kbModifier];
+              break;
+          }
+          updateKbModifierUI();
+          return;
+        }
+
+        // ── Fn row system action ─────────────────────────────────────────────────
+        if (action) {
+          if (kb.fn && key) {
+            // fn active — send F key instead of system action
+            kbSend({ type: "kb", key });
+          } else {
+            kbSend({ type: "system", action });
+          }
+          return;
+        }
+
+        // ── Named special key ────────────────────────────────────────────────────
+        if (key) {
+          kbSend({ type: "kb", key });
+          // shift passes through to backend via modifier state
+          // no auto-release — shift+arrow, shift+return etc need shift held
+          return;
+        }
+
+        // ── Printable character ──────────────────────────────────────────────────
+        if (n !== undefined) {
+          // resolve character — shift or caps for letters, shift only for symbols
+          const isLetter = button.classList.contains("letter");
+          const useShifted = kb.shift || (kb.caps && isLetter);
+          const char = useShifted && s ? s : n;
+
+          kbSend({ type: "kb", key: char });
+
+          // auto-release shift after printable key
+          releaseShift();
+          return;
+        }
+      };
+
+      /* ====================================
+       * Attach keyboard listeners
+       * ==================================== */
+      kbEl.addEventListener("click", (e) => {
+        const button = e.target.closest(".key");
+        if (!button || button.id === "closeFullKeyboard") return;
+        handleKbKey(button);
+      });
+
+      // Desktop testing fallback
+      kbEl.querySelectorAll(".key").forEach((key) => {
+        if (key.id === "closeFullKeyboard") return;
+        key.addEventListener("click", () => {}); // ensures :active fires on desktop
+      });
       /* ====================================
        * Settings Drawer
        * ==================================== */

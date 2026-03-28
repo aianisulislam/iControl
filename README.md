@@ -1,7 +1,7 @@
 # iControl
 **Control your Mac from any device. Instantly. No app. No account. No cloud.**
 
-Open a URL on your phone — you’re in.  
+Open a URL on your phone — you're in.  
 Your device becomes a trackpad, keyboard, and control surface for macOS.
 
 - **Zero install** — works on any device with a browser  
@@ -20,7 +20,7 @@ iControl turns any device into a **direct input peripheral for your Mac**.
 
 Not screen sharing.  
 Not remote desktop.  
-Not “control via cloud”.
+Not "control via cloud".
 
 > **Input goes in. Actions happen. Nothing comes back.**
 
@@ -71,22 +71,23 @@ Browser (any device) ──WebSocket──▶ Swift HTTP/WS server ──▶ mac
 
 ### Touchpad
 - Native cursor acceleration (HID-level)  
-- Click, right-click, **middle-click**  
-- Drag, scroll, gestures  
+- Click, right-click, middle-click  
+- Drag and scroll  
 - Adjustable sensitivity  
 
 ### Keyboard
 - Full key support with modifiers  
 - Sticky modifiers (Cmd, Option, Shift, Ctrl)  
-- Shortcut-friendly (Cmd+Tab, Cmd+Space, etc.)  
+- Shortcut-friendly (Cmd+Tab, Cmd+Space, Spotlight, etc.)  
+- F1–F12 with system actions (brightness, media, volume, Siri, screenshot)  
 
 #### Typing modes
 
 - **Compose**  
-  Use your phone’s keyboard (autocorrect, emoji, voice, multilingual input)
+  Use your phone's native keyboard — autocorrect, emoji, voice input, multilingual. Type and send.
 
 - **Passthrough**  
-  Raw keystrokes sent in real-time — behaves like a physical keyboard
+  Full keyboard replica. Raw keystrokes sent in real-time — behaves like a physical keyboard attached to your Mac.
 
 ---
 
@@ -95,6 +96,7 @@ Browser (any device) ──WebSocket──▶ Swift HTTP/WS server ──▶ mac
 - App switching, Spotlight  
 - Volume control (with system overlay)  
 - Media playback (iPod-style wheel UI)
+- Siri, Screenshot toolbar
 
 ---
 
@@ -126,12 +128,13 @@ Phone → WebSocket → iControl → macOS input system
 - Executed via native APIs  
 
 Example:
-```
-{ "type": "mouse", "dx": 10, "dy": -5 }
-{ "type": "key", "key": "space" }
+```json
+{ "type": "move", "dx": 10, "dy": -5 }
+{ "type": "kb", "key": "space", "flags": { "cmd": true } }
 { "type": "app", "app": "Finder" }
 { "type": "url", "url": "https://example.com" }
 ```
+
 ---
 
 ## Security model
@@ -141,9 +144,22 @@ Example:
 - Whitelisted command set  
 - One-way communication  
 
-> The client sends commands. The Mac executes them. That’s it.
+> The client sends commands. The Mac executes them. That's it.
 
 No files, no screen data, no system state exposed.
+
+---
+
+## Known limitations
+
+iControl simulates input via macOS user-space APIs (`CGEvent`). Some system behaviours require hardware-level HID input and cannot be replicated this way:
+
+- **Space switching** (Ctrl+Arrow) — intercepted by the Dock before user-space events reach it  
+- **Hot corners** — triggered by hardware cursor arrival at screen edges, not cursor position alone  
+- **Dock auto-hide** — same as hot corners  
+- **Password fields** — macOS blocks input simulation when secure input mode is active  
+
+These are platform constraints, not bugs. They affect all software-based input simulation tools, not just iControl.
 
 ---
 
