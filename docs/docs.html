@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iControl — Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Funnel+Display:wght@300..800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0b1220;
+      --bg-card: #18223b;
+      --bg-elevated: #283861;
+      --border: rgba(71, 85, 105, 0.35);
+      --border-accent: rgba(71, 85, 105, 0.5);
+      --text: #e5e7eb;
+      --text-muted: #c1cbda;
+      --text-dim: #475569;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.15);
+      --accent-2: #06b6d4;
+      --green: #22c55e;
+      --font-display: "Funnel Display", sans-serif;
+      --font-body: -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'DM Mono', monospace;
+      --sidebar-width: 260px;
+      --content-max: 720px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.35;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      background: rgba(8, 14, 26, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .nav-divider {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+
+    .nav-title {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .nav-right a {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-right a:hover { color: var(--text); }
+
+    .nav-home {
+      font-family: var(--font-mono);
+      font-size: 0.75rem !important;
+      color: var(--accent) !important;
+      border: 1px solid rgba(59,130,246,0.3);
+      padding: 0.3rem 0.75rem;
+      border-radius: 0.3rem;
+      transition: all 0.2s !important;
+    }
+
+    .nav-home:hover {
+      background: var(--accent-glow) !important;
+      border-color: rgba(59,130,246,0.5) !important;
+    }
+
+    /* ── Layout ── */
+    .layout {
+      display: flex;
+      min-height: 100vh;
+      padding-top: 56px;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      position: fixed;
+      top: 56px;
+      left: 0;
+      bottom: 0;
+      width: var(--sidebar-width);
+      overflow-y: auto;
+      border-right: 1px solid var(--border);
+      padding: 2rem 0;
+      background: rgba(8, 14, 26, 0.6);
+      backdrop-filter: blur(8px);
+    }
+
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-track { background: transparent; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 2px; }
+
+    .sidebar-section {
+      margin-bottom: 2rem;
+      padding: 0 1.25rem;
+    }
+
+    .sidebar-label {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 0.6rem;
+      padding: 0 0.5rem;
+    }
+
+    .sidebar-nav {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .sidebar-nav a {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 0.4rem 0.5rem;
+      border-radius: 0.3rem;
+      transition: all 0.15s;
+      line-height: 1.4;
+    }
+
+    .sidebar-nav a:hover {
+      color: var(--text);
+      background: rgba(71,85,105,0.12);
+    }
+
+    .sidebar-nav a.active {
+      color: var(--accent);
+      background: var(--accent-glow);
+    }
+
+    /* ── Main content ── */
+    .content {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      max-width: calc(var(--sidebar-width) + var(--content-max) + 8rem);
+      padding: 3.5rem 4rem 6rem;
+    }
+
+    /* ── Typography ── */
+    .content h1 {
+      font-family: var(--font-display);
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+
+    .content h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin-top: 3rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .content h3 {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-top: 2rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .content p {
+      color: var(--text-muted);
+      font-size: 0.94rem;
+      margin-bottom: 1rem;
+      max-width: var(--content-max);
+    }
+
+    .content ul, .content ol {
+      color: var(--text-muted);
+      font-size: 0.94rem;
+      padding-left: 1.5rem;
+      margin-bottom: 1rem;
+      max-width: var(--content-max);
+    }
+
+    .content li { margin-bottom: 0.4rem; line-height: 1.65; }
+
+    .content strong { color: var(--text); font-weight: 500; }
+
+    .content code {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--accent-2);
+      background: rgba(6,182,212,0.08);
+      border: 1px solid rgba(6,182,212,0.15);
+      padding: 0.1em 0.4em;
+      border-radius: 0.25rem;
+    }
+
+    /* ── Section anchor ── */
+    .section-anchor {
+      display: block;
+      position: relative;
+      top: -80px;
+      visibility: hidden;
+    }
+
+    /* ── Page header ── */
+    .page-header {
+      margin-bottom: 3rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .page-label {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    .page-header p {
+      font-size: 1rem;
+      color: var(--text-muted);
+      max-width: 560px;
+      margin-top: 0.75rem;
+    }
+
+    /* ── Note / callout ── */
+    .note {
+      display: flex;
+      gap: 0.75rem;
+      background: rgba(59,130,246,0.05);
+      border: 1px solid rgba(59,130,246,0.15);
+      border-radius: 0.5rem;
+      padding: 1rem 1.25rem;
+      margin: 1.25rem 0;
+      max-width: var(--content-max);
+    }
+
+    .note-icon { font-size: 0.9rem; flex-shrink: 0; margin-top: 0.1rem; color: var(--accent); }
+
+    .note p { margin: 0; font-size: 0.88rem; color: var(--text-muted); }
+
+    .warn {
+      background: rgba(234,179,8,0.05);
+      border-color: rgba(234,179,8,0.2);
+    }
+
+    .warn .note-icon { color: #eab308; }
+
+    /* ── Key table ── */
+    .key-table {
+      width: 100%;
+      max-width: var(--content-max);
+      border-collapse: collapse;
+      margin: 1.25rem 0;
+      font-size: 0.86rem;
+    }
+
+    .key-table th {
+      text-align: left;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      padding: 0.6rem 1rem;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .key-table td {
+      padding: 0.6rem 1rem;
+      color: var(--text-muted);
+      border-bottom: 1px solid rgba(71,85,105,0.12);
+      vertical-align: top;
+    }
+
+    .key-table tr:last-child td { border-bottom: none; }
+    .key-table tr:hover td { background: rgba(71,85,105,0.05); }
+
+    .key-table td:first-child {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--accent-2);
+      white-space: nowrap;
+    }
+
+    .key-table td:nth-child(2) {
+      color: var(--text);
+      font-size: 0.88rem;
+    }
+
+    /* ── Situation table ── */
+    .sit-table {
+      width: 100%;
+      max-width: var(--content-max);
+      border-collapse: collapse;
+      margin: 1.25rem 0;
+      font-size: 0.86rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+
+    .sit-table th {
+      text-align: left;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      padding: 0.75rem 1.25rem;
+      background: var(--bg-card);
+    }
+
+    .sit-table td {
+      padding: 0.75rem 1.25rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.88rem;
+    }
+
+    .sit-table td:first-child { color: var(--text); }
+
+    /* ── Steps ── */
+    .steps {
+      list-style: none;
+      padding: 0;
+      max-width: var(--content-max);
+      margin-bottom: 1rem;
+    }
+
+    .steps li {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+
+    .step-num {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--accent);
+      background: var(--accent-glow);
+      border: 1px solid rgba(59,130,246,0.2);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    .steps li p { margin: 0; font-size: 0.94rem; }
+
+    /* ── Divider ── */
+    .doc-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 3rem 0;
+      max-width: var(--content-max);
+    }
+
+    /* ── FAQ ── */
+    .faq-item {
+      max-width: var(--content-max);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .faq-question {
+      width: 100%;
+      background: none;
+      border: none;
+      text-align: left;
+      padding: 1.1rem 0;
+      font-family: var(--font-body);
+      font-size: 0.94rem;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      transition: color 0.2s;
+    }
+
+    .faq-question:hover { color: var(--accent); }
+
+    .faq-chevron {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+
+    .faq-item.open .faq-chevron { transform: rotate(180deg); }
+
+    .faq-answer {
+      display: none;
+      padding-bottom: 1.1rem;
+    }
+
+    .faq-item.open .faq-answer { display: block; }
+
+    .faq-answer p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.7;
+    }
+
+    /* ── Limitations list ── */
+    .limitation {
+      display: flex;
+      gap: 0.75rem;
+      max-width: var(--content-max);
+      margin-bottom: 0.75rem;
+    }
+
+    .limitation-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      flex-shrink: 0;
+      margin-top: 0.55rem;
+    }
+
+    .limitation p { margin: 0; font-size: 0.9rem; color: var(--text-muted); }
+    .limitation strong { color: var(--text); }
+
+    /* ── Troubleshoot card ── */
+    .trouble-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 0.6rem;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+      max-width: var(--content-max);
+    }
+
+    .trouble-card h4 {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .trouble-card h4::before {
+      content: '';
+      width: 3px;
+      height: 14px;
+      background: var(--accent);
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .trouble-card ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .trouble-card li {
+      font-size: 0.86rem;
+      color: var(--text-muted);
+      padding: 0.25rem 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      line-height: 1.6;
+    }
+
+    .trouble-card li::before {
+      content: '→';
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      flex-shrink: 0;
+      margin-top: 0.15rem;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .content { margin-left: 0; padding: 2rem 1.5rem 4rem; }
+      .nav-title { display: none; }
+      .nav-divider { display: none; }
+    }
+
+    @media (max-width: 540px) {
+      .content { padding: 1.5rem 1.25rem 4rem; }
+      .content h1 { font-size: 1.8rem; }
+      .content h2 { font-size: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <div class="nav-left">
+      <a href="index.html" class="nav-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" width="18" height="18">
+          <path d="m15.76 12.99l-0.38 3.55c-0.22 0.92-1.17 1.46-2.27 1.46h-5.59c-0.38 0-0.74-0.04-0.95-0.3l-2.5-3.96c-0.32-0.39-0.26-0.91 0.13-1.24 0.5-0.43 1.33-0.37 1.74 0.13l0.96 1.17v-8.38c0-0.54 0.52-0.98 1.16-0.98 0.82 0 1.16 0.63 1.16 0.98l0.01 4.98 4.99 0.39c1.11 0.32 1.77 1.22 1.54 2.2zm-12.33-5.59c-0.63 0-1.15-0.45-1.15-0.99v-1.23c0-6.91 11.56-6.91 11.56 0v1.23c0 0.54-0.52 0.99-1.16 0.99-0.64 0-1.15-0.45-1.15-0.99v-1.23c0-3.95-6.94-3.95-6.94 0v1.23c0 0.54-0.52 0.99-1.16 0.99z" fill="currentColor"/>
+        </svg>
+        iControl
+      </a>
+      <span class="nav-divider">/</span>
+      <span class="nav-title">Documentation</span>
+    </div>
+    <div class="nav-right">
+      <a href="https://github.com/aianisulislam/iControl" target="_blank">GitHub</a>
+      <a href="index.html" class="nav-home">← Back to site</a>
+    </div>
+  </nav>
+
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Getting started</div>
+        <ul class="sidebar-nav">
+          <li><a href="#what-is">What is iControl?</a></li>
+          <li><a href="#install">Installation</a></li>
+          <li><a href="#connect">Connecting a device</a></li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Interface</div>
+        <ul class="sidebar-nav">
+          <li><a href="#header">Header</a></li>
+          <li><a href="#touchpad">Touchpad</a></li>
+          <li><a href="#general">General tab</a></li>
+          <li><a href="#type">Type tab</a></li>
+          <li><a href="#media">Media tab</a></li>
+          <li><a href="#apps">Apps tab</a></li>
+          <li><a href="#system">System tab</a></li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Keyboard</div>
+        <ul class="sidebar-nav">
+          <li><a href="#keyboard">Full keyboard</a></li>
+          <li><a href="#modifiers">Modifier keys</a></li>
+          <li><a href="#fnrow">Function row</a></li>
+          <li><a href="#kb-gestures">Gestures</a></li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Security</div>
+        <ul class="sidebar-nav">
+          <li><a href="#secure-mode">Secure mode</a></li>
+          <li><a href="#open-mode">Open mode</a></li>
+          <li><a href="#managing">Managing access</a></li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Settings</div>
+        <ul class="sidebar-nav">
+          <li><a href="#settings">Sensitivity</a></li>
+          <li><a href="#limitations">Known limitations</a></li>
+        </ul>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Help</div>
+        <ul class="sidebar-nav">
+          <li><a href="#best-practices">Best practices</a></li>
+          <li><a href="#troubleshooting">Troubleshooting</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <main class="content">
+
+      <!-- Page header -->
+      <div class="page-header">
+        <div class="page-label">Documentation</div>
+        <h1>User Manual</h1>
+        <p>Everything you need to set up, use, and get the most out of iControl — from first launch to advanced keyboard shortcuts.</p>
+      </div>
+
+      <!-- ── What is iControl ── -->
+      <span class="section-anchor" id="what-is"></span>
+      <h2>What is iControl?</h2>
+      <p>iControl turns any phone, tablet, or computer into a wireless trackpad and keyboard for your Mac. Open a link in your browser and your device becomes a remote control — no apps to install, no accounts to create, no internet required.</p>
+      <p>Everything happens on your local Wi-Fi network. Your phone talks directly to your Mac. Nothing goes through the cloud.</p>
+
+      <div class="note">
+        <span class="note-icon">ℹ</span>
+        <p>iControl is a one-way tool. It sends input to your Mac. It cannot see your screen, access your files, or read anything from your Mac. The only information it receives back is the current volume level.</p>
+      </div>
+
+      <!-- ── Installation ── -->
+      <span class="section-anchor" id="install"></span>
+      <h2>Installation</h2>
+
+      <h3>Download and open</h3>
+      <ol class="steps">
+        <li><span class="step-num">1</span><p>Download iControl from the <a href="https://github.com/aianisulislam/iControl/releases/latest" style="color:var(--accent);text-decoration:none;">latest release</a> on GitHub.</p></li>
+        <li><span class="step-num">2</span><p>Open the <code>.dmg</code> file and drag iControl to your Applications folder.</p></li>
+        <li><span class="step-num">3</span><p>Open iControl. The icon appears in your menu bar — there is no Dock icon.</p></li>
+        <li><span class="step-num">4</span><p>Grant Accessibility permission when prompted. This is required for input simulation.</p></li>
+      </ol>
+
+      <h3>Accessibility permission</h3>
+      <p>If the prompt does not appear automatically, go to <strong>System Settings → Privacy & Security → Accessibility</strong> and enable iControl.</p>
+      <div class="note warn">
+        <span class="note-icon">⚠</span>
+        <p>Accessibility permission is used only to move the cursor and simulate key presses. iControl cannot read screen content or access other applications' data.</p>
+      </div>
+
+      <!-- ── Connecting ── -->
+      <span class="section-anchor" id="connect"></span>
+      <h2>Connecting a device</h2>
+      <p>Click the iControl icon in your menu bar. You will see a QR code and two URLs — one using your Mac's local hostname, one using its IP address.</p>
+      <p>On your phone or tablet, scan the QR code or type either URL into your browser. In Secure mode, the QR code already contains your authentication token — scanning it connects you automatically with no extra steps.</p>
+
+      <h3>Install as a PWA</h3>
+      <p>For quick one-tap access, install iControl to your home screen:</p>
+      <ul>
+        <li><strong>iPhone / iPad:</strong> tap the Share button in Safari, then Add to Home Screen</li>
+        <li><strong>Android:</strong> tap the browser menu, then Install App or Add to Home Screen</li>
+        <li><strong>Desktop:</strong> click the install icon in your browser's address bar</li>
+      </ul>
+      <div class="note">
+        <span class="note-icon">ℹ</span>
+        <p>Both devices must be on the same Wi-Fi network. iControl will not work over mobile data or across different networks.</p>
+      </div>
+
+      <hr class="doc-divider" />
+
+      <!-- ── Interface ── -->
+      <span class="section-anchor" id="header"></span>
+      <h2>Header</h2>
+      <p>The header runs across the top of the screen:</p>
+      <ul>
+        <li><strong>Hamburger icon (left)</strong> — opens the Settings drawer</li>
+        <li><strong>iControl logo (centre)</strong> — decorative, tappable to scroll to top</li>
+        <li><strong>Connection dot (right)</strong> — green when connected, red when disconnected. Tap to manually trigger a reconnect.</li>
+      </ul>
+
+      <!-- ── Touchpad ── -->
+      <span class="section-anchor" id="touchpad"></span>
+      <h2>Touchpad</h2>
+      <p>The large surface at the top of the screen works like a laptop trackpad.</p>
+      <ul>
+        <li><strong>One finger move</strong> — moves the cursor with native acceleration</li>
+        <li><strong>Tap</strong> — left click</li>
+        <li><strong>Two fingers</strong> — scroll in any direction</li>
+        <li><strong>Hold without moving</strong> — starts a drag. The touchpad highlights purple.</li>
+      </ul>
+      <p>Below the touchpad are three mouse buttons — left, middle, and right click.</p>
+
+      <!-- ── General ── -->
+      <span class="section-anchor" id="general"></span>
+      <h2>General tab</h2>
+      <p>Arrow keys, Tab, Backspace, Return, Space, and a volume slider on the right. Includes sticky modifier keys — Shift, Ctrl, Option, and Command.</p>
+      <p>Tap a modifier to latch it. It stays highlighted and active until you tap a regular key, then releases automatically. This lets you fire shortcuts like Cmd+C or Ctrl+Tab without holding two keys simultaneously.</p>
+
+      <!-- ── Type ── -->
+      <span class="section-anchor" id="type"></span>
+      <h2>Type tab</h2>
+      <p>Two ways to type on your Mac:</p>
+      <h3>Compose mode</h3>
+      <p>Tap the text area and type using your device's native keyboard — with autocorrect, emoji, voice input, and multilingual support. When ready, tap <strong>Send</strong> to deliver the text to whatever is focused on your Mac.</p>
+      <h3>Full Keyboard</h3>
+      <p>Tap <strong>Full Keyboard</strong> to open a replica of the Apple Magic Keyboard. Keys are sent one at a time as you tap them, exactly like a physical keyboard.</p>
+      <h3>Cursorpad</h3>
+      <p>The cursor icon button opens the Cursorpad — swipe in any direction to move the text cursor one character or line at a time. Hold and then swipe to select text as you move.</p>
+      <p>Sensitivity is configurable in Settings.</p>
+
+      <!-- ── Media ── -->
+      <span class="section-anchor" id="media"></span>
+      <h2>Media tab</h2>
+      <p>An iPod-style control wheel. Outer buttons control volume and track navigation. The centre button plays or pauses. Tap and hold the left or right outer buttons to seek backward or forward.</p>
+
+      <!-- ── Apps ── -->
+      <span class="section-anchor" id="apps"></span>
+      <h2>Apps tab</h2>
+      <p>Quick-launch buttons for Finder, Safari, Messages, Music, YouTube, and other common apps. At the bottom, type any app name, bundle identifier, or full URL and tap <strong>Open</strong> to launch it on your Mac.</p>
+
+      <!-- ── System ── -->
+      <span class="section-anchor" id="system"></span>
+      <h2>System tab</h2>
+      <p>Shortcuts for common macOS actions: Mission Control, Launchpad, App Exposé, App Switcher, Spotlight, fullscreen, minimise, select all, copy, paste, undo, redo, new, and open.</p>
+
+      <hr class="doc-divider" />
+
+      <!-- ── Keyboard ── -->
+      <span class="section-anchor" id="keyboard"></span>
+      <h2>Full keyboard</h2>
+      <p>The Full Keyboard opens from the Type tab. It is a complete replica of the Apple Magic Keyboard — every key, all modifier keys, and a full function row.</p>
+      <p>On iPad, the keyboard sits below the touchpad — the same spatial layout as a MacBook. On phones in landscape, the screen rotates to fit the keyboard layout comfortably.</p>
+
+      <!-- ── Modifiers ── -->
+      <span class="section-anchor" id="modifiers"></span>
+      <h3 id="modifiers">Modifier keys</h3>
+      <p>Shift, Ctrl, Option, and Command are sticky. Tap one to activate it — it highlights. Tap a regular key and the combo fires, then the modifier releases automatically.</p>
+      <ul>
+        <li><strong>Shift</strong> — releases after one character. Capitalises letters and activates symbol variants.</li>
+        <li><strong>Caps Lock</strong> — stays on until tapped again. Affects letters only, not symbols.</li>
+        <li><strong>Cmd / Ctrl / Opt</strong> — stay active until released. Combine freely for multi-modifier shortcuts.</li>
+        <li><strong>Fn</strong> — switches the function row from system actions to raw F-key events.</li>
+      </ul>
+
+      <!-- ── Fn row ── -->
+      <span class="section-anchor" id="fnrow"></span>
+      <h3>Function row</h3>
+      <table class="key-table">
+        <thead>
+          <tr><th>Key</th><th>Action</th><th>With Fn active</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>F1</td><td>Brightness down (built-in display)</td><td>F1 key event</td></tr>
+          <tr><td>F2</td><td>Brightness up (built-in display)</td><td>F2 key event</td></tr>
+          <tr><td>F3</td><td>Mission Control</td><td>F3 key event</td></tr>
+          <tr><td>F4</td><td>Launchpad</td><td>F4 key event</td></tr>
+          <tr><td>F5</td><td>Siri</td><td>F5 key event</td></tr>
+          <tr><td>F6</td><td>Screenshot toolbar</td><td>F6 key event</td></tr>
+          <tr><td>F7</td><td>Previous track</td><td>F7 key event</td></tr>
+          <tr><td>F8</td><td>Play / Pause</td><td>F8 key event</td></tr>
+          <tr><td>F9</td><td>Next track</td><td>F9 key event</td></tr>
+          <tr><td>F10</td><td>Mute</td><td>F10 key event</td></tr>
+          <tr><td>F11</td><td>Volume down</td><td>F11 key event</td></tr>
+          <tr><td>F12</td><td>Volume up</td><td>F12 key event</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ── KB Gestures ── -->
+      <span class="section-anchor" id="kb-gestures"></span>
+      <h3>Keyboard gestures</h3>
+      <p>The close button in the top-right corner of the keyboard does more than close:</p>
+      <ul>
+        <li><strong>Tap</strong> — close keyboard, return to tab view</li>
+        <li><strong>Swipe down</strong> — collapse to peek mode (function row only visible)</li>
+        <li><strong>Swipe up</strong> — swap keyboard and touchpad positions</li>
+        <li><strong>Swipe down (from swapped)</strong> — swap back to default</li>
+      </ul>
+
+      <hr class="doc-divider" />
+
+      <!-- ── Security ── -->
+      <span class="section-anchor" id="secure-mode"></span>
+      <h2>Secure mode (default)</h2>
+      <p>In Secure mode, every device must authenticate before it can send input. Two paths exist:</p>
+
+      <h3>Token — for your own devices</h3>
+      <p>The QR code and URL in the menu bar contain your personal token. Scan the QR code and you are authenticated immediately — no typing required. The token is saved on your device and reused silently on every future reconnect.</p>
+
+      <h3>Request Access — for guests</h3>
+      <p>If someone opens the URL without a token, they can tap <strong>Request Access</strong>. A dialog appears on your Mac — click <strong>Allow</strong> or <strong>Deny</strong>. Approved guests receive a temporary session token that lasts until they close the browser tab or iControl restarts.</p>
+
+      <div class="note">
+        <span class="note-icon">ℹ</span>
+        <p>Denied devices cannot try again in the same browser session. Closing and reopening the tab gives a fresh start.</p>
+      </div>
+
+      <!-- ── Open mode ── -->
+      <span class="section-anchor" id="open-mode"></span>
+      <h2>Open mode</h2>
+      <p>In Open mode, any device on your network connects immediately with no authentication. Useful for presentations or situations where everyone present is welcome.</p>
+      <p>Switching to Open requires Touch ID or your Mac login password. Switching back to Secure automatically generates a new token, disconnecting all previously connected devices.</p>
+
+      <!-- ── Managing ── -->
+      <span class="section-anchor" id="managing"></span>
+      <h2>Managing access</h2>
+      <p>All controls are in the iControl menu bar under <strong>Connection Security</strong>:</p>
+      <ul>
+        <li><strong>Secure / Open</strong> — select your mode. Switching to Open requires biometric or password confirmation.</li>
+        <li><strong>Regenerate Token</strong> — visible only in Secure mode. Generates a new token and immediately invalidates all previously connected devices.</li>
+      </ul>
+
+      <table class="sit-table">
+        <thead><tr><th>Situation</th><th>What to do</th></tr></thead>
+        <tbody>
+          <tr><td>Setting up your own device</td><td>Scan the QR code — done</td></tr>
+          <tr><td>Letting a friend connect</td><td>Have them tap Request Access, approve on your Mac</td></tr>
+          <tr><td>Revoking all access</td><td>Regenerate Token in the menu bar</td></tr>
+          <tr><td>Temporary open access</td><td>Switch to Open, switch back to Secure when done</td></tr>
+        </tbody>
+      </table>
+
+      <hr class="doc-divider" />
+
+      <!-- ── Settings ── -->
+      <span class="section-anchor" id="settings"></span>
+      <h2>Settings</h2>
+      <p>Tap the hamburger icon in the top left to open Settings.</p>
+      <ul>
+        <li><strong>Touchpad sensitivity</strong> — how fast the cursor moves relative to finger movement. Default 1x.</li>
+        <li><strong>Scroll sensitivity</strong> — how far the page scrolls per two-finger swipe. Default 1x.</li>
+        <li><strong>Cursorpad sensitivity</strong> — how many pixels of swipe trigger one arrow keystroke. At 1x, roughly 12px per keystroke.</li>
+      </ul>
+
+      <!-- ── Limitations ── -->
+      <span class="section-anchor" id="limitations"></span>
+      <h2>Known limitations</h2>
+      <p>iControl simulates input through standard macOS APIs. Some system features require hardware-level input that software cannot replicate:</p>
+
+      <div class="limitation"><div class="limitation-dot"></div><p><strong>Space switching (Ctrl+Arrow)</strong> — intercepted by macOS at a system level before iControl can deliver it. Use Mission Control on the fn row instead.</p></div>
+      <div class="limitation"><div class="limitation-dot"></div><p><strong>Hot corners</strong> — triggered by physical cursor arrival at screen edges, not cursor position alone.</p></div>
+      <div class="limitation"><div class="limitation-dot"></div><p><strong>Dock auto-hide</strong> — same mechanism as hot corners.</p></div>
+      <div class="limitation"><div class="limitation-dot"></div><p><strong>Password fields</strong> — macOS blocks all software input simulation when a password field is focused. This is a built-in security feature. Type passwords directly on your Mac.</p></div>
+      <div class="limitation"><div class="limitation-dot"></div><p><strong>Brightness keys</strong> — F1 and F2 affect the built-in display only. External displays are not affected.</p></div>
+
+      <div class="note">
+        <span class="note-icon">ℹ</span>
+        <p>These are platform constraints that affect all software-based input tools, not issues specific to iControl.</p>
+      </div>
+
+      <hr class="doc-divider" />
+
+      <!-- ── Best practices ── -->
+      <span class="section-anchor" id="best-practices"></span>
+      <h2>Best practices</h2>
+      <p>A few setup choices that make iControl noticeably more reliable day to day.</p>
+
+      <h3>Simplify your Mac's hostname</h3>
+      <p>Your Mac's local hostname determines the URL iControl shows in the menu bar — something like <code>aniss-macbook-pro.local:4040</code>. Apostrophes get percent-encoded and hyphens stack up, making the URL awkward to type and occasionally causing resolution failures on some routers.</p>
+      <p>Set a clean, short hostname in <strong>System Settings → General → Sharing → Local Hostname</strong>. Something like <code>studio</code>, <code>mac</code>, or <code>air</code> gives you a URL like <code>studio.local:4040</code> — easy to remember and type on any keyboard.</p>
+      <div class="note">
+        <span class="note-icon">ℹ</span>
+        <p>Stick to lowercase letters and numbers only. No apostrophes, no hyphens, no spaces. The hostname is used by mDNS — special characters cause inconsistent resolution across devices and operating systems.</p>
+      </div>
+
+      <h3>Assign a static local IP to your Mac</h3>
+      <p>If you prefer using the IP address URL rather than the hostname — or if hostname resolution is unreliable on your network — your Mac's local IP address can change each time it reconnects to Wi-Fi. This breaks saved bookmarks and PWA shortcuts.</p>
+      <p>Fix your Mac's IP in your router's DHCP settings by creating a static lease tied to your Mac's Wi-Fi MAC address. The router will always assign the same IP. Your iControl URL becomes permanently <code>http://192.168.1.x:4040</code> and never changes.</p>
+      <p>How to find your Mac's Wi-Fi MAC address: <strong>System Settings → Network → Wi-Fi → Details → Hardware Address</strong>.</p>
+      <div class="note warn">
+        <span class="note-icon">⚠</span>
+        <p>Every router's interface is different. Look for DHCP reservation, static lease, or address binding in your router's admin panel. The IP you assign must be outside your router's automatic DHCP range to avoid conflicts.</p>
+      </div>
+
+      <h3>Android PWA over HTTP — use Hermit</h3>
+      <p>Chrome on Android enforces HTTPS for PWA installation. Since iControl runs over plain HTTP on your local network, Chrome will load the page but refuse to offer Add to Home Screen as a proper PWA — you get a browser shortcut instead, which opens with the address bar visible and no standalone feel.</p>
+      <p><strong>Hermit</strong> (available on the Play Store) creates Lite Apps — frameless browser windows that behave exactly like PWAs without requiring HTTPS. Add iControl's URL in Hermit, enable frameless mode, and the result is indistinguishable from a native app install. No address bar, no browser chrome, full screen.</p>
+      <div class="note">
+        <span class="note-icon">ℹ</span>
+        <p>iOS Safari and desktop browsers install iControl as a proper PWA without any workaround — this is an Android Chrome-specific limitation.</p>
+      </div>
+
+      <h3>Add to home screen before leaving the network</h3>
+      <p>Install iControl as a PWA while you are on the same network as your Mac. Some browsers cache the manifest and icons at install time — if you try to install from outside the network, the install prompt may not appear or the icon may not load correctly.</p>
+
+      <h3>Keep the screen awake on your phone</h3>
+      <p>If your phone's screen sleeps while iControl is open, the WebSocket connection may drop depending on your device's background app policies. For extended couch sessions, turn off auto-lock temporarily or use your device's guided access / stay awake feature.</p>
+      <p>The connection indicator turns red when the connection drops. Tap it to reconnect instantly — you do not need to reload the page.</p>
+
+      <h3>Use the hostname URL on most devices, IP as fallback</h3>
+      <p>The hostname URL (<code>mac.local:4040</code>) works reliably on iOS, macOS, and most Android devices. Windows and some Android configurations occasionally have trouble resolving <code>.local</code> hostnames due to mDNS handling differences. If a device cannot load the hostname URL, switch to the IP address URL — both are shown in the iControl menu bar.</p>
+
+      <h3>Restart your app to revoke approved accesses</h3>
+      <p>If you used Request Access to let a guest connect temporarily, quit and relaunch your app when you are done. This clears their session and re-secures the connection without requiring you to switch modes or change any other settings.</p>
+
+      <hr class="doc-divider" />
+
+      <!-- ── Troubleshooting ── -->
+      <span class="section-anchor" id="troubleshooting"></span>
+      <h2>Troubleshooting</h2>
+
+      <div class="trouble-card">
+        <h4>Page does not load</h4>
+        <ul>
+          <li>Make sure both devices are on the same Wi-Fi network — mobile data will not work.</li>
+          <li>Try the IP address URL instead of the hostname URL. Some routers block local hostname resolution.</li>
+          <li>Disable any active VPN on either device — VPNs often route traffic away from the local network.</li>
+          <li>Check System Settings → Network → Firewall and make sure iControl is allowed.</li>
+        </ul>
+      </div>
+
+      <div class="trouble-card">
+        <h4>Connection indicator stays red</h4>
+        <ul>
+          <li>Tap the red dot to manually trigger a reconnect.</li>
+          <li>Close the browser tab and reopen the URL.</li>
+          <li>In Secure mode, your saved token may have been invalidated. Scan the QR code again.</li>
+        </ul>
+      </div>
+
+      <div class="trouble-card">
+        <h4>Cursor moves but clicks do not register</h4>
+        <ul>
+          <li>Check System Settings → Privacy & Security → Accessibility — iControl must be enabled.</li>
+          <li>Try toggling Accessibility off and back on, then restart iControl.</li>
+        </ul>
+      </div>
+
+      <div class="trouble-card">
+        <h4>Typing does not work in some apps</h4>
+        <ul>
+          <li>Click the target app window on your Mac to give it focus first.</li>
+          <li>Password fields block all software input by design — type passwords directly on your Mac keyboard.</li>
+        </ul>
+      </div>
+
+      <div class="trouble-card">
+        <h4>Keys are not doing what I expect</h4>
+        <ul>
+          <li>Check for latched modifier keys — they are highlighted when active. Tap to release.</li>
+          <li>Check whether Caps Lock or Fn are active on the full keyboard.</li>
+          <li>Close and reopen the keyboard to reset all modifier state.</li>
+        </ul>
+      </div>
+
+      <div class="trouble-card">
+        <h4>Touchpad feels imprecise</h4>
+        <ul>
+          <li>Adjust Touchpad sensitivity in Settings — lower values give finer control.</li>
+          <li>Matte screen protectors add noise to touch input and can affect smoothness.</li>
+        </ul>
+      </div>
+
+      <div class="trouble-card">
+        <h4>Someone connected without permission</h4>
+        <ul>
+          <li>Open the iControl menu bar and tap Regenerate Token. This immediately disconnects all devices.</li>
+          <li>If you were in Open mode, switch back to Secure — this also generates a new token.</li>
+        </ul>
+      </div>
+
+      <div class="trouble-card">
+        <h4>iControl does not appear in the menu bar</h4>
+        <ul>
+          <li>iControl is a menu bar app — look at the top-right of your screen, not the Dock.</li>
+          <li>If the menu bar is full, other icons may be hiding it. Try making space by removing other menu bar items.</li>
+        </ul>
+      </div>
+
+      <hr class="doc-divider" />
+
+      <!-- ── FAQ ── -->
+      <span class="section-anchor" id="faq"></span>
+      <h2>Frequently asked questions</h2>
+
+      <div class="faq-item">
+        <button class="faq-question">Does iControl work without Wi-Fi? <span class="faq-chevron">▼</span></button>
+        <div class="faq-answer"><p>No. iControl requires both devices on the same local network. If you have a Mac but no router, create a hotspot on your Mac and connect your phone to it — iControl will work over that connection.</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">Can I use iControl from outside my home? <span class="faq-chevron">▼</span></button>
+        <div class="faq-answer"><p>No, and this is intentional. iControl only listens on your local network. It is physically impossible for someone outside your home network to connect — even if they know your URL. No port forwarding, no VPN, no cloud relay. The server is simply not reachable from the internet.</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">Does iControl see my screen? <span class="faq-chevron">▼</span></button>
+        <div class="faq-answer"><p>No. iControl is input-only. It sends commands to your Mac — cursor movement, key presses, system shortcuts. It never reads your screen, captures images, or accesses files. The only information received from your Mac is the current volume level, used to keep the volume slider in sync.</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">Why does it need Accessibility permission? <span class="faq-chevron">▼</span></button>
+        <div class="faq-answer"><p>Accessibility permission is required for any app that simulates keyboard and mouse input on macOS. Without it, iControl cannot move the cursor or press keys. The permission does not allow iControl to read screen content — it only enables input simulation.</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">Can multiple devices connect at the same time? <span class="faq-chevron">▼</span></button>
+        <div class="faq-answer"><p>Yes. Multiple devices can be connected simultaneously. They all share the same cursor and keyboard focus — whoever sends a command last is who the Mac responds to. There is no conflict resolution — it works like multiple people touching the same trackpad.</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">What happens if my Mac goes to sleep? <span class="faq-chevron">▼</span></button>
+        <div class="faq-answer"><p>The WebSocket connection drops when the Mac sleeps. When it wakes, tap the connection dot to reconnect, or simply close and reopen the tab. Devices with a saved token reconnect silently.</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">What happens if I restart iControl? <span class="faq-chevron">▼</span></button>
+        <div class="faq-answer"><p>Devices with a saved token reconnect automatically and silently. Guest devices approved via Request Access will need to request access again — session tokens are in-memory only and clear on restart.</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">Why can't I type into password fields? <span class="faq-chevron">▼</span></button>
+        <div class="faq-answer"><p>macOS activates Secure Input Mode when a password field is focused. It blocks all software-based input simulation — not just iControl, but any tool using the same macOS APIs. This is intentional and cannot be bypassed. Type passwords directly on your Mac keyboard.</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">Why does the brightness key not work on my external monitor? <span class="faq-chevron">▼</span></button>
+        <div class="faq-answer"><p>Brightness control via keyboard simulation only works for the Mac's built-in display. External monitors control their own brightness through physical buttons or separate software like MonitorControl.</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">Can I add my own buttons or shortcuts? <span class="faq-chevron">▼</span></button>
+        <div class="faq-answer"><p>Yes. iControl is open source under the MIT license. The entire frontend is a single HTML file with no build step. The backend protocol is documented in the README. Fork it, modify it, make it yours.</p></div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">The app is under 1 MB — is it really that small? <span class="faq-chevron">▼</span></button>
+        <div class="faq-answer"><p>Yes. The entire product — the macOS app and the web client — is under 1 MB combined. No frameworks, no bundlers, no external services. The web client is a single HTML file. The Swift backend has four source files. Small by design.</p></div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    // FAQ accordion
+    document.querySelectorAll('.faq-question').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.closest('.faq-item');
+        const isOpen = item.classList.contains('open');
+        document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+        if (!isOpen) item.classList.add('open');
+      });
+    });
+
+    // Sidebar active state on scroll
+    const sections = document.querySelectorAll('.section-anchor');
+    const navLinks = document.querySelectorAll('.sidebar-nav a');
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          navLinks.forEach(link => {
+            link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
+          });
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+
+    sections.forEach(s => observer.observe(s));
+  </script>
+
+</body>
+</html>
