@@ -296,12 +296,28 @@
         animation: fadeUp 0.6s 0.4s ease both;
       }
 
+      .demo_cta {
+        font-size: 0.8rem;
+        margin-top: 1rem;
+        color: var(--text-muted);
+        text-decoration: none;
+        animation: fadeUp 0.6s 0.4s ease both;
+      }
+
       .hero-mockup-container {
-        margin-top: 4rem;
+        margin-top: 1rem;
         width: 320px;
         height: 642px;
         transform: scale(calc(min(100vw, 320px) / 320px));
         transform-origin: top center;
+        resize: horizontal;
+        max-width: 900px;
+        min-width: 300px;
+        scrollbar-width: none; 
+        overflow: auto;
+      }
+      .hero-mockup-container::-webkit-scrollbar {
+        display: none;                /* Chrome/Safari */
       }
 
       .hero-mockup {
@@ -1150,6 +1166,7 @@
           </div>
         </div>
       </div>
+      <a class="demo_cta" href="./app.html" target="_blank"> Try the interactive demo ↗</a>
     </section>
 
     <div class="strip">
