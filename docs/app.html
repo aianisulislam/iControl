@@ -2047,6 +2047,30 @@
     </div>
     <script>
       window.addEventListener("contextmenu", (e) => e.preventDefault());
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const inputFeedback = () => {
+        navigator?.vibrate?.(15)
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(600, now);
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.2, now + 0.001);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.01);
+      };
+
+      const resumeAudio = () => {
+        if (audioCtx.state === "suspended") audioCtx.resume();
+      };
+
+      document.addEventListener("touchstart", resumeAudio, { passive: true });
+      document.addEventListener("click", resumeAudio, { passive: true });
 
       const status = document.getElementById("reconnect");
       let modifiers = {
