@@ -1,5 +1,5 @@
 # iControl
-**Control your Mac from any device. Instantly. No app. No account. No cloud.**
+**Control your Mac from any device. Instantly. No companion app. No account. No cloud.**
 [![iControl Hero](https://raw.githubusercontent.com/aianisulislam/iControl/gh-pages/docs/hero_composite.png)](https://aianisulislam.github.io/iControl/app.html)
 
 Open a URL on your phone — you're in.  
