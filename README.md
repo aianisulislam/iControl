@@ -251,6 +251,16 @@ You control the system.**
 
 ---
 
+## Support
+
+iControl is free, open source, offilne and has no ads, accounts, or subscriptions.
+If it saves you time or you just want to say thanks:
+
+- **International:** [paypal.me/aianisulislam](https://paypal.me/aianisulislam)
+- **India (UPI / cards):** [razorpay.me/@aianisulislam](https://razorpay.me/@aianisulislam)
+
+---
+
 ## License
 
 MIT — do whatever you want.
