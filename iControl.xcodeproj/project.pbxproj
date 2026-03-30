@@ -17,6 +17,7 @@
 				Resources/Archives/index_v1.0.0.html,
 				Resources/Archives/index_v1.1.0.html,
 				Resources/Archives/index_v1.1.1.html,
+				Resources/Archives/index_v1.2.0.html,
 			);
 			target = 76DF05E82F5F7A3800A9B6A2 /* iControl */;
 		};
@@ -49,10 +50,6 @@
 			children = (
 				76DF05EB2F5F7A3800A9B6A2 /* iControl */,
 				76DF05EA2F5F7A3800A9B6A2 /* Products */,
-				76DF05F92F5F7FDD00A9B6A2 /* App */,
-				76DF05FA2F5F7FDD00A9B6A2 /* Server */,
-				76DF05FB2F5F7FDD00A9B6A2 /* Input */,
-				76DF05FC2F5F7FDD00A9B6A2 /* Resources */,
 			);
 			sourceTree = "<group>";
 		};
@@ -62,34 +59,6 @@
 				76DF05E92F5F7A3800A9B6A2 /* iControl.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		76DF05F92F5F7FDD00A9B6A2 /* App */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = App;
-			sourceTree = "<group>";
-		};
-		76DF05FA2F5F7FDD00A9B6A2 /* Server */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Server;
-			sourceTree = "<group>";
-		};
-		76DF05FB2F5F7FDD00A9B6A2 /* Input */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Input;
-			sourceTree = "<group>";
-		};
-		76DF05FC2F5F7FDD00A9B6A2 /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -320,7 +289,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 77GKNP5Q4P;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
@@ -333,7 +302,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = "1.3.3-beta";
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.anis.iControl;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -354,7 +323,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 77GKNP5Q4P;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
@@ -367,7 +336,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = "1.3.3-beta";
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.anis.iControl;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;

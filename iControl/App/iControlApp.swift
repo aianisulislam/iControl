@@ -41,7 +41,7 @@ struct iControlApp: App {
     private let server: HTTPServer
     private let authContext: AuthContext
     @AppStorage("launchAtLogin") private var launchAtLogin = false
-    @AppStorage("authMode") private var authMode = "secure"
+    @AppStorage("authMode") private var authMode = "open"
     @AppStorage("authToken") private var authToken = ""
     @State private var showSecuritySubmenu = false
 
@@ -61,9 +61,9 @@ struct iControlApp: App {
 
         // Default to secure mode on first launch
         if UserDefaults.standard.object(forKey: "authMode") == nil {
-            UserDefaults.standard.set("secure", forKey: "authMode")
+            UserDefaults.standard.set("open", forKey: "authMode")
         }
-        let mode = UserDefaults.standard.string(forKey: "authMode") ?? "secure"
+        let mode = UserDefaults.standard.string(forKey: "authMode") ?? "open"
 
         let ctx = AuthContext(mode: mode, token: token)
         authContext = ctx
@@ -203,6 +203,7 @@ struct iControlApp: App {
                         authContext.persistentToken = newToken
                         authContext.approvedSessions = []
                         UserDefaults.standard.set(newToken, forKey: "authToken")
+                        server.disconnectAllWebSockets()
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal, 12)
@@ -283,6 +284,7 @@ struct iControlApp: App {
             authContext.approvedSessions = []
             UserDefaults.standard.set(newToken, forKey: "authToken")
         }
+        server.disconnectAllWebSockets()
     }
 
     private func switchToOpenMode() {
@@ -306,6 +308,7 @@ struct iControlApp: App {
         authMode = "open"
         authContext.mode = "open"
         UserDefaults.standard.set("open", forKey: "authMode")
+        server.disconnectAllWebSockets()
     }
 
     // MARK: - URL helpers

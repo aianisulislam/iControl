@@ -1,5 +1,8 @@
 # iControl
-**Control your Mac from any device. Instantly. No app. No account. No cloud.**
+
+[![iControl Hero](https://raw.githubusercontent.com/aianisulislam/iControl/gh-pages/docs/hero_composite.png)](https://aianisulislam.github.io/iControl/app.html)
+
+**Control your Mac from any device. Instantly. No companion app. No account. No cloud.**
 
 Open a URL on your phone — you're in.  
 Your device becomes a trackpad, keyboard, and control surface for macOS.
@@ -248,6 +251,16 @@ Once downloaded, it exists entirely on your machine.
 > **You control your Mac.  
 You control your data.  
 You control the system.**
+
+---
+
+## Support
+
+iControl is free, open source, offilne and has no ads, accounts, or subscriptions.
+If it saves you time or you just want to say thanks:
+
+- **International:** [paypal.me/aianisulislam](https://paypal.me/aianisulislam)
+- **India (UPI / cards):** [razorpay.me/@aianisulislam](https://razorpay.me/@aianisulislam)
 
 ---
 
