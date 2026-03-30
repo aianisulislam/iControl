@@ -728,7 +728,7 @@
         <li><strong>Two fingers</strong> — scroll in any direction</li>
         <li><strong>Hold without moving</strong> — starts a drag. The touchpad highlights purple.</li>
       </ul>
-      <p>Below the touchpad are three mouse buttons — left, middle, and right click.</p>
+      <p>Below the touchpad are three mouse buttons — left, middle, and right click. The middle button doubles as a one-handed scroll control: touch it and slide your finger in any direction to scroll. Once the scroll starts, you can move your finger anywhere on the screen — you do not need to stay on the button. Lift your finger to stop. This lets you scroll both vertically and horizontally with a single hand without using the two-finger trackpad gesture.</p>
 
       <!-- ── General ── -->
       <span class="section-anchor" id="general"></span>
@@ -820,7 +820,7 @@
 
       <!-- ── Security ── -->
       <span class="section-anchor" id="secure-mode"></span>
-      <h2>Secure mode (default)</h2>
+      <h2>Secure mode</h2>
       <p>In Secure mode, every device must authenticate before it can send input. Two paths exist:</p>
 
       <h3>Token — for your own devices</h3>
@@ -836,17 +836,17 @@
 
       <!-- ── Open mode ── -->
       <span class="section-anchor" id="open-mode"></span>
-      <h2>Open mode</h2>
-      <p>In Open mode, any device on your network connects immediately with no authentication. Useful for presentations or situations where everyone present is welcome.</p>
-      <p>Switching to Open requires Touch ID or your Mac login password. Switching back to Secure automatically generates a new token, disconnecting all previously connected devices.</p>
+      <h2>Open mode <span style="font-family:var(--font-mono);font-size:0.65rem;font-weight:400;color:var(--accent);background:var(--accent-glow);border:1px solid rgba(59,130,246,0.25);padding:0.15em 0.5em;border-radius:0.25rem;vertical-align:middle;letter-spacing:0.06em;">DEFAULT</span></h2>
+      <p>iControl starts in Open mode by default. Any device on your network connects immediately with no authentication — useful for personal use where convenience matters more than access control.</p>
+      <p>Switching to Secure mode requires Touch ID or your Mac login password. Switching back to Open mode also requires authentication. <strong>Any time you switch modes or regenerate the token, all currently connected devices are disconnected</strong> and must reconnect before sending input again.</p>
 
       <!-- ── Managing ── -->
       <span class="section-anchor" id="managing"></span>
       <h2>Managing access</h2>
       <p>All controls are in the iControl menu bar under <strong>Connection Security</strong>:</p>
       <ul>
-        <li><strong>Secure / Open</strong> — select your mode. Switching to Open requires biometric or password confirmation.</li>
-        <li><strong>Regenerate Token</strong> — visible only in Secure mode. Generates a new token and immediately invalidates all previously connected devices.</li>
+        <li><strong>Secure / Open</strong> — select your mode. Switching either direction requires biometric or password confirmation. Switching mode immediately disconnects all active clients — they must reconnect to continue.</li>
+        <li><strong>Regenerate Token</strong> — visible only in Secure mode. Generates a new token and immediately disconnects all active clients. Devices must scan the new QR code or enter the new token to reconnect.</li>
       </ul>
 
       <table class="sit-table">
@@ -953,7 +953,7 @@
         <ul>
           <li>Tap the red dot to manually trigger a reconnect.</li>
           <li>Close the browser tab and reopen the URL.</li>
-          <li>In Secure mode, your saved token may have been invalidated. Scan the QR code again.</li>
+          <li>In Secure mode, your saved token may have been invalidated — for example, if the token was regenerated or the auth mode was switched. Scan the QR code again to get a fresh token.</li>
         </ul>
       </div>
 
