@@ -284,6 +284,16 @@ final class HTTPServer {
         webSockets[id] = nil
     }
 
+    func disconnectAllWebSockets() {
+        queue.async { [weak self] in
+            guard let self else { return }
+            for socket in self.webSockets.values {
+                socket.disconnect()
+            }
+            self.webSockets = [:]
+        }
+    }
+
     private func broadcastVolume(_ volume: Double) {
         queue.async { [weak self] in
             guard let self else { return }

@@ -81,6 +81,11 @@ final class WebSocketServer {
         receiveFrame()
     }
 
+    func disconnect() {
+        sendFrame(opcode: 0x8, payload: Data())
+        connection.cancel()
+    }
+
     func sendState(volume: Double) {
         let roundedVolume = Int(volume.rounded())
         let payload = #"{"type":"state","volume":\#(roundedVolume)}"#
@@ -176,6 +181,10 @@ final class WebSocketServer {
             if let key = command.key {
                 inputController.handleKbInput(key, flags: command.flags)
             }
+        case "auth":
+            if authContext.mode == "open" {
+                sendMessage(#"{"type":"auth:open"}"#)
+            }
         default:
             break
         }
@@ -194,9 +203,9 @@ final class WebSocketServer {
         if authContext.isTokenValid(token) {
             authState = .approved
             let safeToken = token.replacingOccurrences(of: "\"", with: "")
-            sendMessage(#"{"type":"auth:approved","token":"\#(safeToken)"}"#)
+            sendMessage(#"{"type":"auth:approved","token":"\#(safeToken)","session":false}"#)
         } else {
-            sendMessage(#"{"type":"auth:rejected","reason":"session_expired"}"#)
+            sendMessage(#"{"type":"auth:rejected","reason":"invalid_token"}"#)
         }
     }
 
@@ -218,7 +227,7 @@ final class WebSocketServer {
                 let sessionToken = AuthContext.generateToken()
                 self.authContext.approvedSessions.insert(sessionToken)
                 self.authState = .approved
-                self.sendMessage(#"{"type":"auth:approved","token":"\#(sessionToken)"}"#)
+                self.sendMessage(#"{"type":"auth:approved","token":"\#(sessionToken)","session":true}"#)
             } else {
                 self.sendMessage(#"{"type":"auth:rejected","reason":"denied"}"#)
             }
