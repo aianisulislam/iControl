@@ -599,6 +599,7 @@
         <ul class="sidebar-nav">
           <li><a href="#what-is">What is iControl?</a></li>
           <li><a href="#install">Installation</a></li>
+          <li><a href="#gatekeeper">Gatekeeper warning</a></li>
           <li><a href="#connect">Connecting a device</a></li>
         </ul>
       </div>
@@ -680,6 +681,21 @@
         <li><span class="step-num">3</span><p>Open iControl. The icon appears in your menu bar — there is no Dock icon.</p></li>
         <li><span class="step-num">4</span><p>Grant Accessibility permission when prompted. This is required for input simulation.</p></li>
       </ol>
+
+      <span class="section-anchor" id="gatekeeper"></span>
+      <h3>First launch — Gatekeeper warning</h3>
+      <p>iControl is not notarized by Apple, so macOS Gatekeeper will block it on first launch with a message saying the app "cannot be opened because it is from an unidentified developer" or "cannot be verified."</p>
+      <p>To open it anyway:</p>
+      <ol class="steps">
+        <li><span class="step-num">1</span><p>Click <strong>Done</strong> (or <strong>OK</strong>) to dismiss the Gatekeeper dialog.</p></li>
+        <li><span class="step-num">2</span><p>Open <strong>System Settings → Privacy & Security</strong> and scroll down to the Security section.</p></li>
+        <li><span class="step-num">3</span><p>You will see a message saying iControl was blocked. Click <strong>Open Anyway</strong>.</p></li>
+        <li><span class="step-num">4</span><p>In the confirmation dialog that appears, click <strong>Open</strong>. macOS remembers this choice — you will not be asked again.</p></li>
+      </ol>
+      <div class="note">
+        <span class="note-icon">ℹ</span>
+        <p>This is a standard macOS warning for apps distributed outside the Mac App Store. It does not mean the app is unsafe — it means Apple has not charged the developer a notarization fee. The iControl source code is fully open on <a href="https://github.com/aianisulislam/iControl" style="color:var(--accent);text-decoration:none;">GitHub</a> and can be reviewed or built locally if preferred.</p>
+      </div>
 
       <h3>Accessibility permission</h3>
       <p>If the prompt does not appear automatically, go to <strong>System Settings → Privacy & Security → Accessibility</strong> and enable iControl.</p>
@@ -939,6 +955,15 @@
       <!-- ── Troubleshooting ── -->
       <span class="section-anchor" id="troubleshooting"></span>
       <h2>Troubleshooting</h2>
+
+      <div class="trouble-card">
+        <h4>macOS says the app cannot be opened</h4>
+        <ul>
+          <li>This is the Gatekeeper warning for non-notarized apps. Click Done to dismiss it.</li>
+          <li>Go to System Settings → Privacy & Security, scroll to the Security section, and click Open Anyway next to the iControl entry.</li>
+          <li>Confirm by clicking Open in the dialog that follows. macOS will not ask again after this.</li>
+        </ul>
+      </div>
 
       <div class="trouble-card">
         <h4>Page does not load</h4>
