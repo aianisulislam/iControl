@@ -13,6 +13,11 @@ final class InputController {
     private var lastKnownPosition: CGPoint
     private var lastMoveTime: Date = .distantPast
 
+    private var lastClickTime: Date = .distantPast
+    private var lastClickPosition: CGPoint = .zero
+    private var lastClickButton: String = ""
+    private var consecutiveClickCount: Int = 0
+
     private var currentPosition: CGPoint {
         CGEvent(source: nil)?.location ?? lastKnownPosition
     }
@@ -59,26 +64,28 @@ final class InputController {
         event?.post(tap: .cghidEventTap)
     }
 
-    func mouseClick(button: String) {
-        postClick(button: button, clickState: 1)
-    }
-
-    func doubleClick(button: String) {
-        let source = CGEventSource(stateID: .hidSystemState)
+    func mouseClick(button: String, flags: KbFlags? = nil) {
+        let now = Date()
         let point = currentPosition
-        postClick(button: button, clickState: 1, source: source, point: point)
-        Thread.sleep(forTimeInterval: 0.05)
-        postClick(button: button, clickState: 2, source: source, point: point)
-    }
+        let interval = now.timeIntervalSince(lastClickTime)
+        let dx = point.x - lastClickPosition.x
+        let dy = point.y - lastClickPosition.y
+        let withinPosition = (dx * dx + dy * dy) <= 16   // 4 px radius
 
-    func tripleClick(button: String) {
-        let source = CGEventSource(stateID: .hidSystemState)
-        let point = currentPosition
-        postClick(button: button, clickState: 1, source: source, point: point)
-        Thread.sleep(forTimeInterval: 0.05)
-        postClick(button: button, clickState: 2, source: source, point: point)
-        Thread.sleep(forTimeInterval: 0.05)
-        postClick(button: button, clickState: 3, source: source, point: point)
+        if button == lastClickButton,
+           interval <= NSEvent.doubleClickInterval,
+           withinPosition,
+           consecutiveClickCount < 3 {
+            consecutiveClickCount += 1
+        } else {
+            consecutiveClickCount = 1
+        }
+
+        lastClickTime = now
+        lastClickPosition = point
+        lastClickButton = button
+
+        postClick(button: button, clickState: Int64(consecutiveClickCount), flags: cgEventFlags(from: flags))
     }
 
     func mouseDown(button: String) {
@@ -186,6 +193,18 @@ final class InputController {
     func currentVolumePercentage() -> Double? {
         guard let volume = systemVolume() else { return nil }
         return Double(volume * 100)
+    }
+
+    func openTarget(_ target: String) {
+        let trimmed = target.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        
+        if looksLikeURL(trimmed) {
+            let urlString = trimmed.contains("://") ? trimmed : "http://" + trimmed
+            openURL(urlString)
+        } else {
+            launchApp(trimmed)
+        }
     }
 
     func launchApp(_ target: String) {
@@ -348,36 +367,45 @@ final class InputController {
         }
     }
 
-    private func postClick(button: String, clickState: Int64) {
-        postClick(button: button, clickState: clickState, source: CGEventSource(stateID: .hidSystemState), point: currentPosition)
-    }
+    private func postClick(button: String, clickState: Int64, flags: CGEventFlags = []) {
+        let (mouseButton, downType, upType) = mouseButtonEventTypes(for: button)
+        let source = CGEventSource(stateID: .hidSystemState)
+        let point = currentPosition
 
-    private func postClick(button: String, clickState: Int64, source: CGEventSource?, point: CGPoint) {
-        let mouseButton: CGMouseButton
-        let downType: CGEventType
-        let upType: CGEventType
-
-        switch button {
-        case "right":
-            mouseButton = .right
-            downType = .rightMouseDown
-            upType = .rightMouseUp
-        case "middle":
-            mouseButton = .center
-            downType = .otherMouseDown
-            upType = .otherMouseUp
-        default:
-            mouseButton = .left
-            downType = .leftMouseDown
-            upType = .leftMouseUp
+        if !flags.isEmpty {
+            let modifierCodes = modifierKeyCodes(for: flags)
+            var accumulated: CGEventFlags = []
+            for code in modifierCodes {
+                accumulated.insert(self.flags(forPressedModifierKeyCode: code))
+                let modDown = CGEvent(keyboardEventSource: kbEventSource, virtualKey: code, keyDown: true)
+                modDown?.flags = accumulated
+                modDown?.post(tap: keyboardTapLocation)
+                usleep(1500)
+            }
         }
 
         let down = CGEvent(mouseEventSource: source, mouseType: downType, mouseCursorPosition: point, mouseButton: mouseButton)
         let up = CGEvent(mouseEventSource: source, mouseType: upType, mouseCursorPosition: point, mouseButton: mouseButton)
         down?.setIntegerValueField(.mouseEventClickState, value: clickState)
         up?.setIntegerValueField(.mouseEventClickState, value: clickState)
+        if !flags.isEmpty {
+            down?.flags = flags
+            up?.flags = flags
+        }
         down?.post(tap: .cghidEventTap)
         up?.post(tap: .cghidEventTap)
+
+        if !flags.isEmpty {
+            let modifierCodes = modifierKeyCodes(for: flags)
+            var accumulated = flags
+            for code in modifierCodes.reversed() {
+                accumulated.remove(self.flags(forPressedModifierKeyCode: code))
+                let modUp = CGEvent(keyboardEventSource: kbEventSource, virtualKey: code, keyDown: false)
+                modUp?.flags = accumulated
+                modUp?.post(tap: keyboardTapLocation)
+                usleep(1500)
+            }
+        }
     }
 
     private func postKey(keyCode: CGKeyCode, flags: CGEventFlags = [], tap: CGEventTapLocation? = nil) {
@@ -612,6 +640,80 @@ final class InputController {
         let dataSize = UInt32(MemoryLayout<Float32>.size)
         let status = AudioObjectSetPropertyData(deviceID, &address, 0, nil, dataSize, &mutableVolume)
         return status == noErr
+    }
+
+    private let urlTLDs: Set<String> = [
+        // ── Generic ───────────────────────────────────────────────────────────
+        "com", "org", "net", "edu", "gov", "mil", "int",
+
+        // ── Tech & startup favourites ─────────────────────────────────────────
+        "io", "app", "dev", "ai", "co", "tech", "software",
+        "cloud", "host", "site", "web", "online", "digital",
+        "code", "api", "data",
+
+        // ── Media & content ───────────────────────────────────────────────────
+        "tv", "media", "news", "blog", "press", "pub",
+        "stream", "video", "music", "fm", "live",
+
+        // ── Commerce ──────────────────────────────────────────────────────────
+        "shop", "store", "market", "buy", "deal",
+
+        // ── Personal & portfolio ──────────────────────────────────────────────
+        "me", "name", "bio", "page", "link", "gg",
+
+        // ── Country codes — major ─────────────────────────────────────────────
+        "uk", "us", "ca", "au", "de", "fr", "jp", "cn",
+        "in", "br", "ru", "it", "es", "nl", "se", "no",
+        "dk", "fi", "pl", "pt", "mx", "ar", "kr", "sg",
+        "nz", "za", "ae", "sa", "il", "tr", "ch", "at",
+        "be", "cz", "hu", "ro", "gr", "th", "id", "ph",
+        "my", "vn", "pk", "bd", "ng", "ke", "gh",
+
+        // ── Country second-level common combos ────────────────────────────────
+        // (covers co.uk, com.au etc — the TLD extractor sees the last segment)
+        // Already handled since "uk" and "au" are in the list above
+
+        // ── Local network & self-hosted ───────────────────────────────────────
+        "local",       // mDNS — your-mac.local, raspberrypi.local
+        "internal",    // common corporate/home convention
+        "home",        // some routers use .home
+        "lan",         // common router default
+        "intranet",    // corporate
+        "corp",        // corporate
+        "private",     // some setups
+        "localdomain", // Linux default
+        "localhost",   // though this would never have a dot before it
+    ]
+
+    private func looksLikeURL(_ input: String) -> Bool {
+        if input.contains("://") { return true }
+        if input.hasPrefix("www.") { return true }
+
+        // ── IP address — with or without port ────────────────────────────────
+        let host = input.components(separatedBy: "/").first ?? input
+        let hostWithoutPort = host.components(separatedBy: ":").first ?? host
+        let parts = hostWithoutPort.components(separatedBy: ".")
+        if parts.count == 4 && parts.allSatisfy({ Int($0) != nil && Int($0)! <= 255 }) {
+            return true
+        }
+
+        // ── hostname:port — no dots, has colon with numeric port ─────────────
+        if !input.contains("."),
+          let colonIdx = input.firstIndex(of: ":"),
+          let port = Int(input[input.index(after: colonIdx)...].components(separatedBy: "/").first ?? "") {
+            return port > 0 && port <= 65535
+        }
+
+        // ── TLD check ─────────────────────────────────────────────────────────
+        if let dot = input.lastIndex(of: ".") {
+            let afterDot = String(input[input.index(after: dot)...])
+            let tld = afterDot.components(separatedBy: "/").first?
+                .components(separatedBy: ":").first?
+                .lowercased() ?? ""
+            return urlTLDs.contains(tld)
+        }
+
+        return false
     }
 
     private func isSystemMuted(deviceID: AudioDeviceID) -> Bool? {

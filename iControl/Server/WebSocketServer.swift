@@ -14,6 +14,7 @@ struct RemoteCommand: Decodable {
     let type: String
     let key: String?
     let url: String?
+    let target: String?
     let value: CommandValue?
     let button: String?
     let action: String?
@@ -154,7 +155,7 @@ final class WebSocketServer {
                 inputController.typeText(string: value)
             }
         case "click":
-            inputController.mouseClick(button: command.button ?? "left")
+            inputController.mouseClick(button: command.button ?? "left", flags: command.flags)
         case "mouseDown":
             inputController.mouseDown(button: command.button ?? "left")
         case "mouseUp":
@@ -176,6 +177,10 @@ final class WebSocketServer {
         case "url":
             if let url = command.url {
                 inputController.openURL(url)
+            }
+        case "open":
+            if let target = command.target {
+                inputController.openTarget(target)
             }
         case "kb":
             if let key = command.key {
