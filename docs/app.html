@@ -164,6 +164,7 @@
         line-height: 1.2rem;
         border-block-end: 2px solid transparent;
         padding: 0 var(--gap) 0.5rem var(--gap);
+        cursor: pointer;
       }
       .tab-title.active {
         border-block-end: 2px solid var(--color-text);
@@ -183,9 +184,6 @@
         align-items: stretch;
         transition: all 0.3s ease-in-out;
         order: 1;
-      }
-      #touchpad-wrapper.swapped {
-        order: 3;
       }
       #touchpad {
         flex: 1;
@@ -210,22 +208,16 @@
       }
 
       @container (max-block-size: 82px) {
-        #touchpad {
+        #touchpad-wrapper:not(:has(~ .keyboard.mini)) #touchpad {
           flex: 0;
           margin-block-end: 0;
         }
-        #touchpad-buttons {
+        #touchpad-wrapper:not(:has(~ .keyboard.mini)) #touchpad-buttons {
           flex: 1;
         }
       }
-      @container (max-block-size: 20px) {
-        #touchpad-wrapper {
-          display: none;
-        }
-        #touchpad {
-          display: none;
-        }
-        #touchpad-buttons {
+      @container (max-block-size: 340px) {
+        #touchpad-wrapper:not(:has(~ .keyboard.mini)) {
           display: none;
         }
       }
@@ -494,7 +486,7 @@
         order: 3;
       }
       .keyboard.swapped {
-        order: 1;
+        order: 0;
       }
       .keyboard > .row {
         display: flex;
@@ -677,64 +669,69 @@
       #auth-modal {
         position: fixed;
         inset: 0;
+        padding: 1rem;
         z-index: 200;
-        background: rgba(0, 0, 0, 0.75);
+        background: var(--color-bg);
         display: flex;
         align-items: center;
         justify-content: center;
         backdrop-filter: blur(4px);
       }
       #auth-modal-inner {
-        background: rgba(0, 0, 0, 0.6);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-lg);
-        backdrop-filter: blur(20px);
         padding: 1rem 1.5rem;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 1.25rem;
+        gap: 0.75rem;
         min-inline-size: 320px;
       }
-      #auth-modal-inner p {
-        font-size: 0.95rem;
+      #auth-modal-title {
+        font-size: 0.75rem;
         color: var(--color-text-muted);
-        text-align: center;
-        letter-spacing: 0.04em;
-        margin: 0;
+        opacity: 0.85;
+        margin-block-end: 1rem;
       }
       #auth-token-input {
-        width: auto;
-        height: auto;
-        font-size: 2.2rem;
-        font-weight: 700;
+        display: flex;
+        gap: 0.6rem;
+        justify-content: center;
+      }
+      .otp-digit {
+        font-size: 2rem;
+        font-weight: 300;
         text-align: center;
         text-transform: uppercase;
-        padding: 0.5rem 1rem;
-        background: var(--color-button);
-        border: 1px solid var(--color-border-accent);
-        border-radius: var(--radius);
-        color: var(--color-text);
-        max-inline-size: 120px;
         font-family: monospace;
-        inline-size: auto;
-        block-size: auto;
+        border-width: 2px;
+        inline-size: 4rem;
+        block-size: 4rem;
+        padding: 0;
+      }
+      .otp-digit:focus {
+        border-color: var(--color-text-muted);
+        outline: none;
+      }
+      #auth-error-message {
+        color: #f87171;
+        font-size: 0.85rem;
       }
       #auth-submit {
-        padding: 0.7rem 2rem;
-        font-size: 1rem;
+        margin-block-start: 1rem;
+        font-size: 0.9em;
         font-weight: 700;
-        background: var(--color-button-active);
-        color: var(--color-text);
-        border-radius: var(--radius);
+        block-size: 3.2rem;
+        background-color: var(--color-button-active);
+      }
+      #or {
+        font-size: 0.6em;
+        opacity: 0.75;
       }
       #auth-request {
-        padding:  0.7rem 2rem;
-        font-size: 0.8rem;
-        font-weight: 500;
-        background: transparent;
+        font-size: 0.8em;
         color: var(--color-text-muted);
-        border: 1px solid var(--color-border-accent);
+        background: transparent;
+        block-size: 3.2rem;
+        border: 2px solid var(--color-button);
       }
     </style>
   </head>
@@ -870,15 +867,13 @@
           fill-opacity="0.85"
         />
       </symbol>
-      <symbol id="icon-cursorpad" viewBox="0 0 18.7969 19.3477">
-        <rect height="19.3477" opacity="0" width="18.7969" x="0" y="0" />
-        <path
-          d="M12.375 19.3242L17.7188 19.3242C18.1875 19.3242 18.4453 19.1133 18.4453 18.7266C18.4453 18.3281 18.1875 18.1289 17.7188 18.1289L15.7383 18.1289L15.7383 1.20703L17.7188 1.20703C18.1875 1.20703 18.4453 0.984375 18.4453 0.585938C18.4453 0.210938 18.1875 0 17.7188 0L12.375 0C11.8945 0 11.6484 0.210938 11.6484 0.585938C11.6484 0.984375 11.8945 1.20703 12.375 1.20703L14.3438 1.20703L14.3438 18.1289L12.375 18.1289C11.8945 18.1289 11.6484 18.3281 11.6484 18.7266C11.6484 19.1133 11.8945 19.3242 12.375 19.3242Z"
+      <symbol id="icon-cursorpad" viewBox="0 0 28 20">
+        <rect height="20" opacity="0" width="28" x="0" y="0" />
+        <path d="m11.4 19.3h5.3q0.7 0 0.7-0.6 0-0.6-0.7-0.6h-2v-16.9h2c0.5 0 0.7-0.2 0.7-0.6 0-0.4-0.2-0.6-0.7-0.6h-5.3q-0.7 0-0.8 0.6 0.1 0.6 0.8 0.6h1.9v16.9h-1.9q-0.7 0-0.8 0.6 0.1 0.6 0.8 0.6z"
           fill="currentColor"
           fill-opacity="0.85"
         />
-        <path
-          d="M0.890625 16.5C1.44141 16.5 1.72266 16.2891 1.92188 15.7031L2.98828 12.7383L8.21484 12.7383L9.28125 15.7031C9.48047 16.2891 9.76172 16.5 10.3125 16.5C10.8633 16.5 11.2266 16.1719 11.2266 15.6328C11.2266 15.457 11.1914 15.3047 11.1094 15.0703L6.96094 3.91406C6.71484 3.25781 6.28125 2.94141 5.60156 2.94141C4.93359 2.94141 4.5 3.25781 4.26562 3.90234L0.117188 15.082C0.0234375 15.3164 0 15.4688 0 15.6445C0 16.1836 0.339844 16.5 0.890625 16.5ZM3.51562 11.1211L5.58984 5.23828L5.64844 5.23828L7.72266 11.1211Z"
+        <path d="m22.4 13.8c0.4 0.4 0.9 0.4 1.3-0.1l3-3c0.4-0.4 0.4-1 0-1.4l-3-3.1c-0.5-0.4-0.9-0.4-1.3 0-0.4 0.5-0.5 0.9 0 1.4l2.5 2.4-2.5 2.5c-0.4 0.4-0.4 0.8 0 1.3zm-16.7 0c0.4-0.4 0.4-0.9 0-1.3l-2.5-2.5 2.4-2.4c0.4-0.5 0.4-0.9 0-1.3-0.4-0.4-0.9-0.4-1.3 0l-3 3c-0.4 0.4-0.4 1 0 1.4l3 3.1c0.5 0.4 1 0.4 1.4 0z"
           fill="currentColor"
           fill-opacity="0.85"
         />
@@ -1401,9 +1396,9 @@
       <section id="touchpad-wrapper">
         <div id="touchpad" class="touchpad"></div>
         <div id="touchpad-buttons">
-          <button data-command='{"type":"click","button":"left"}'></button>
-          <button data-command='{"type":"click","button":"middle"}'></button>
-          <button data-command='{"type":"click","button":"right"}'></button>
+          <button data-command='{"type":"click","button":"left"}' id="leftClick"></button>
+          <button data-command='{"type":"click","button":"middle"}' id="middleClick"></button>
+          <button data-command='{"type":"click","button":"right"}' id="rightClick"></button>
         </div>
       </section>
       <section id="tab-wrapper">
@@ -1513,7 +1508,7 @@
             </svg>
           </button>
           <button id="cursorPad" class="col-2">
-            <svg style="inline-size: 20px; block-size: 20px">
+            <svg style="inline-size: 34px; block-size: 24px">
               <use href="#icon-cursorpad"></use>
             </svg>
           </button>
@@ -1627,9 +1622,9 @@
             </svg>
           </button>
           <div class="col-3">
-            <input type="text" placeholder="App name, bundle id or URL" />
+            <input type="text" placeholder="App name, bundle id or URL" id="openInput"/>
           </div>
-          <button>Open</button>
+          <button id="openButton">Open</button>
         </div>
         <div id="system" class="tab grid grid-4 hidden">
           <button data-command='{"type":"system","action":"missionControl"}'>
@@ -2030,26 +2025,89 @@
     </aside>
     <div id="auth-modal" class="hidden">
       <div id="auth-modal-inner">
-        <p>Enter access token</p>
-        <input
-          id="auth-token-input"
-          type="text"
-          maxlength="4"
-          minlength="4"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="characters"
-          spellcheck="false"
-        />
+        <div style="display: flex">
+          <svg style="inline-size: 20px; block-size: 20px">
+            <use href="#icon-applogo"></use>
+          </svg>
+          <h1>iControl</h1>
+        </div>
+        <p id="auth-modal-title">Enter the 4 digit access token to connect</p>
+        <div id="auth-token-input">
+          <input class="otp-digit" type="text" maxlength="1" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" />
+          <input class="otp-digit" type="text" maxlength="1" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" />
+          <input class="otp-digit" type="text" maxlength="1" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" />
+          <input class="otp-digit" type="text" maxlength="1" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" />
+        </div>
+        <p id="auth-error-message" class="hidden"></p>
         <button id="auth-submit">Connect</button>
+        <small id="or">OR</small>
         <button id="auth-request">Request Access</button>
       </div>
     </div>
     <script>
       window.addEventListener("contextmenu", (e) => e.preventDefault());
+      /* ── Auth: strip token from URL and store in localStorage ── */
+      (function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlToken = urlParams.get("token");
+        if (urlToken) {
+          localStorage.setItem("icontrol-token", urlToken);
+          history.replaceState({}, "", window.location.pathname);
+        }
+      })();
+
+      const getDeviceName = () => {
+        const ua = navigator.userAgent;
+        const isTouch = navigator.maxTouchPoints > 1;
+
+        if (/iPhone/.test(ua)) return "iPhone";
+        if (/iPad/.test(ua) || (isTouch && /Macintosh/.test(ua))) return "iPad";
+        if (/Android/.test(ua)) return "Android Device";
+        if (/Macintosh/.test(ua)) return "Mac";
+        if (/Windows/.test(ua)) return "Windows PC";
+        return "Unknown Device";
+      };
+
+      const showAuthModal = (denied = false, errorMsg = "") => {
+        const modal = document.getElementById("auth-modal");
+        const title = document.getElementById("auth-modal-title");
+        const input = document.getElementById("auth-token-input");
+        const errorEl = document.getElementById("auth-error-message");
+        const submitBtn = document.getElementById("auth-submit");
+        const orEl = document.getElementById("or");
+        const requestBtn = document.getElementById("auth-request");
+        if (denied) {
+          errorEl.textContent = "Connection denied by the host.";
+          title.classList.add("hidden");
+          input.classList.add("hidden");
+          submitBtn.classList.add("hidden");
+          orEl.classList.add("hidden");
+          requestBtn.classList.add("hidden");
+        } else {
+          title.classList.remove("hidden");
+          if (errorMsg) {
+            errorEl.classList.remove("hidden");
+            errorEl.textContent = errorMsg;
+          } else {
+            errorEl.classList.add("hidden");
+            errorEl.textContent = "";
+          }
+          input.classList.remove("hidden");
+          submitBtn.classList.remove("hidden");
+          orEl.classList.remove("hidden");
+          requestBtn.classList.remove("hidden");
+        }
+        modal.classList.remove("hidden");
+        if (!denied) input.querySelector(".otp-digit").focus();
+      };
+
+      const hideAuthModal = () => {
+        document.getElementById("auth-modal").classList.add("hidden");
+      };
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
       const inputFeedback = () => {
-        navigator?.vibrate?.(15)
+        navigator?.vibrate?.(15);
         if (audioCtx.state === "suspended") audioCtx.resume();
         const now = audioCtx.currentTime;
         const osc = audioCtx.createOscillator();
@@ -2073,6 +2131,7 @@
       document.addEventListener("click", resumeAudio, { passive: true });
 
       const status = document.getElementById("reconnect");
+      let socket;
       let modifiers = {
         shift: false,
         ctrl: false,
@@ -2086,8 +2145,31 @@
       let scrollSensitivity = parseFloat(localStorage.getItem("sens-scroll") ?? "1");
       let cursorpadSensitivity = parseFloat(localStorage.getItem("sens-cursorpad") ?? "1");
 
+      /* ====================================
+       * Connection handling
+       * ==================================== */
+
+      let connectingPromise = null;
+      let reconnectAttempts = 0;
+      let lastSentToken = "";
+      const MAX_RECONNECT = 5;
+      const isDenied = () => sessionStorage.getItem("icontrol-denied") === "1";
+      const connectWebSocket = () => {
+        status.style.color = "#22c55e";
+        hideAuthModal();
+        return Promise.resolve();
+      };
+
+      if (isDenied()) {
+        showAuthModal(true);
+      } else {
+        connectWebSocket();
+      }
+      const checkAndReconnectWebSocket = () => !isDenied() && socket?.readyState !== WebSocket.OPEN && connectWebSocket();
+      window.addEventListener("visibilitychange", () => document.visibilityState === "visible" && checkAndReconnectWebSocket());
+
       const send = (payload) => {
-        console.log("Sending command:", payload);
+        if (!["move", "dragMove", "scroll"].includes(payload.type)) inputFeedback();
       };
 
       /* ====================================
@@ -2106,6 +2188,7 @@
           tabTitles.forEach((t, tIdx) => (tIdx === index ? t.classList.add("active") : t.classList.remove("active")));
           tabs.forEach((t, tIdx) => (tIdx === index ? t.classList.remove("hidden") : t.classList.add("hidden")));
           activeTab = title.textContent.trim().toLowerCase();
+          localStorage.setItem("active-tab", activeTab);
         });
       });
 
@@ -2221,6 +2304,10 @@
               commandJSON.key = modifierPrefix + "+" + commandJSON.key;
             }
           }
+          if (commandJSON.type === "click") {
+            const f = getActiveFlags();
+            if (f.shift || f.ctrl || f.opt || f.cmd) commandJSON.flags = f;
+          }
           send(commandJSON);
         });
       });
@@ -2238,6 +2325,17 @@
       });
 
       /* ====================================
+       * Initialize the open app/URL input
+       * ==================================== */
+      document.getElementById("openButton").addEventListener("click", () => {
+        const openInput = document.getElementById("openInput");
+        const value = openInput.value.trim();
+        if (!value) return;
+        send({ type: "open", target: value });
+        openInput.value = "";
+      });
+
+      /* ====================================
        * Initialize the full keyboard
        * ==================================== */
       const fullKeyboard = document.getElementById("fullKeyboard");
@@ -2246,11 +2344,13 @@
       function showFullKeyboard() {
         tabWrapper.classList.add("hidden");
         keyboardWrapper.classList.remove("hidden");
+        localStorage.setItem("layout", "keyboard");
         reorganizeLayout();
       }
       function showButtonsWrapper() {
         keyboardWrapper.classList.add("hidden");
         tabWrapper.classList.remove("hidden");
+        localStorage.setItem("layout", "buttons");
         releaseKbModifiers();
         reorganizeLayout();
       }
@@ -2269,6 +2369,13 @@
       }
 
       window.addEventListener("resize", reorganizeLayout);
+
+      /* ====================================
+       * Initialize the reconnect button
+       * ==================================== */
+      status.addEventListener("click", () => {
+        checkAndReconnectWebSocket();
+      });
 
       /* ====================================
        * Initialize the touch surface
@@ -2313,6 +2420,9 @@
         let isDragging = false; // drag mode active
         let hasMoved = false; // has moved beyond dragThreshold
         let isHeld = false; // hold has fired
+        let twoFingerStarted = false; // two-finger gesture started
+        let twoFingerHasMoved = false; // two fingers moved beyond dragThreshold
+        let twoFingerStartPoint = null; // centroid at two-finger start
 
         // ── Orientation transform ───────────────────────────────────────────────────
         const transformCoords = (dx, dy) => {
@@ -2357,6 +2467,9 @@
           isDragging = false;
           hasMoved = false;
           isHeld = false;
+          twoFingerStarted = false;
+          twoFingerHasMoved = false;
+          twoFingerStartPoint = null;
           lastPoint = null;
           touches = [];
         };
@@ -2381,6 +2494,15 @@
           swipeStartTime = Date.now();
 
           clearTimeout(holdTimer);
+
+          if (detectTwoFinger && touches.length === 2) {
+            twoFingerStarted = true;
+            twoFingerHasMoved = false;
+            twoFingerStartPoint = {
+              x: (touches[0].x + touches[1].x) / 2,
+              y: (touches[0].y + touches[1].y) / 2,
+            };
+          }
 
           if ((detectHold || detectDrag) && touches.length === 1) {
             holdTimer = setTimeout(() => {
@@ -2420,6 +2542,10 @@
             const rawDy = avg.y - lastPoint.y;
             const { dx, dy } = transformCoords(rawDx, rawDy);
             const dt = Date.now() - swipeStartTime;
+
+            if (Math.sqrt(rawDx * rawDx + rawDy * rawDy) > dragThreshold) {
+              twoFingerHasMoved = true;
+            }
 
             emit("twoFingerMove", {
               dx,
@@ -2519,6 +2645,17 @@
             }
           }
 
+          // ── Two-finger tap ─────────────────────────────────────────────────────
+          if (detectTwoFinger && twoFingerStarted && !twoFingerHasMoved && e.touches.length === 0 && touches.length === 2) {
+            emit("twoFingerTap", {
+              x: twoFingerStartPoint?.x,
+              y: twoFingerStartPoint?.y,
+              duration,
+            });
+            reset();
+            return;
+          }
+
           // ── Tap ────────────────────────────────────────────────────────────────
           if (!hasMoved && touches.length === 1 && e.touches.length === 0) {
             emit("tap", {
@@ -2571,9 +2708,20 @@
             case "twoFingerMove":
               send({ type: "scroll", dx: dx * scrollSensitivity, dy: dy * scrollSensitivity });
               break;
-            case "tap":
-              send({ type: "click", button: "left" });
+            case "tap": {
+              const f = getActiveFlags();
+              const cmd = { type: "click", button: "left" };
+              if (f.shift || f.ctrl || f.opt || f.cmd) cmd.flags = f;
+              send(cmd);
               break;
+            }
+            case "twoFingerTap": {
+              const f = getActiveFlags();
+              const cmd = { type: "click", button: "right" };
+              if (f.shift || f.ctrl || f.opt || f.cmd) cmd.flags = f;
+              send(cmd);
+              break;
+            }
             case "dragStart":
               touchpadEl.classList.add("drag-mode");
               send({ type: "mouseDown", button: "left" });
@@ -2586,6 +2734,30 @@
               send({ type: "mouseUp", button: "left" });
               break;
           }
+        },
+      );
+
+      const middleClickEl = document.getElementById("middleClick");
+      touchTracker(
+        middleClickEl,
+        {
+          detectDrag: false,
+          detectTwoFinger: false,
+          detectSwipe: false,
+          detectHold: false,
+        },
+        ({ type, dx, dy }) => {
+          if (type !== "move") return;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist === 0) return;
+          const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+          const isCardinal =
+            Math.abs(angle) < 22.5 ||
+            Math.abs(angle - 90) < 22.5 ||
+            Math.abs(angle + 90) < 22.5 ||
+            Math.abs(Math.abs(angle) - 180) < 22.5;
+          if (!isCardinal) return;
+          send({ type: "scroll", dx: dx * scrollSensitivity, dy: dy * scrollSensitivity });
         },
       );
 
@@ -2696,6 +2868,14 @@
         ctrl: false, // held — sends kb:down / kb:up (future)
         opt: false, // held — sends kb:down / kb:up (future)
         cmd: false, // held — sends kb:down / kb:up (future)
+      };
+
+      const getActiveFlags = () => {
+        const isKeyboardOpen = !keyboardWrapper.classList.contains("hidden");
+        if (isKeyboardOpen) {
+          return { shift: kb.shift, ctrl: kb.ctrl, opt: kb.opt, cmd: kb.cmd };
+        }
+        return { shift: modifiers.shift, ctrl: modifiers.ctrl, opt: modifiers.opt, cmd: modifiers.cmd };
       };
 
       const kbSend = (payload) => {
@@ -2908,6 +3088,87 @@
           localStorage.setItem(key, v);
         });
       });
+
+      /* ── OTP digit box behaviour ── */
+      (function () {
+        const digits = Array.from(document.querySelectorAll("#auth-token-input .otp-digit"));
+
+        const submitIfComplete = () => {
+          const token = digits.map((d) => d.value).join("");
+          if (token.length === 4) document.getElementById("auth-submit").click();
+        };
+
+        digits.forEach((box, i) => {
+          box.addEventListener("focus", () => box.select());
+
+          box.addEventListener("input", (e) => {
+            const val = box.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+            box.value = val ? val[val.length - 1] : "";
+            if (box.value && i < 3) {
+              digits[i + 1].focus();
+            }
+            submitIfComplete();
+          });
+
+          box.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace") {
+              if (box.value) {
+                box.value = "";
+              } else if (i > 0) {
+                digits[i - 1].focus();
+                digits[i - 1].value = "";
+              }
+              e.preventDefault();
+            } else if (e.key === "ArrowLeft" && i > 0) {
+              digits[i - 1].focus();
+            } else if (e.key === "ArrowRight" && i < 3) {
+              digits[i + 1].focus();
+            } else if (e.key === "Enter") {
+              document.getElementById("auth-submit").click();
+            }
+          });
+
+          box.addEventListener("paste", (e) => {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData)
+              .getData("text")
+              .replace(/[^a-zA-Z0-9]/g, "")
+              .toUpperCase()
+              .slice(0, 4);
+            text.split("").forEach((ch, j) => {
+              if (digits[j]) digits[j].value = ch;
+            });
+            const nextEmpty = digits.findIndex((d) => !d.value);
+            (nextEmpty === -1 ? digits[3] : digits[nextEmpty]).focus();
+            submitIfComplete();
+          });
+        });
+      })();
+
+      /* ── Auth modal submit ── */
+      document.getElementById("auth-submit").addEventListener("click", () => {
+        const digits = document.querySelectorAll("#auth-token-input .otp-digit");
+        const enteredToken = Array.from(digits).map((d) => d.value).join("").toUpperCase();
+        if (enteredToken.length < 4) return;
+        lastSentToken = enteredToken;
+        send({ type: "auth", token: enteredToken, device: getDeviceName() });
+      });
+
+      document.getElementById("auth-request").addEventListener("click", () => {
+        send({ type: "auth:request", device: getDeviceName() });
+      });
+    </script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/sw.js").catch((err) => console.error("SW registration failed:", err));
+        });
+        navigator.serviceWorker.addEventListener("message", (event) => {
+          if (event.data?.type === "UPDATE_AVAILABLE") {
+            window.location.reload();
+          }
+        });
+      }
     </script>
   </body>
 </html>
