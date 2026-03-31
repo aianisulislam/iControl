@@ -2411,9 +2411,11 @@
        * Initialize the open app/URL input
        * ==================================== */
       document.getElementById("openButton").addEventListener("click", () => {
-        const value = document.getElementById("openInput").value.trim();
+        const openInput = document.getElementById("openInput");
+        const value = openInput.value.trim();
         if (!value) return;
         send({ type: "open", target: value });
+        openInput.value = "";
       });
 
       /* ====================================
