@@ -195,6 +195,18 @@ final class InputController {
         return Double(volume * 100)
     }
 
+    func openTarget(_ target: String) {
+        let trimmed = target.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        
+        if looksLikeURL(trimmed) {
+            let urlString = trimmed.contains("://") ? trimmed : "http://" + trimmed
+            openURL(urlString)
+        } else {
+            launchApp(trimmed)
+        }
+    }
+
     func launchApp(_ target: String) {
         let trimmed = target.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -628,6 +640,80 @@ final class InputController {
         let dataSize = UInt32(MemoryLayout<Float32>.size)
         let status = AudioObjectSetPropertyData(deviceID, &address, 0, nil, dataSize, &mutableVolume)
         return status == noErr
+    }
+
+    private let urlTLDs: Set<String> = [
+        // ── Generic ───────────────────────────────────────────────────────────
+        "com", "org", "net", "edu", "gov", "mil", "int",
+
+        // ── Tech & startup favourites ─────────────────────────────────────────
+        "io", "app", "dev", "ai", "co", "tech", "software",
+        "cloud", "host", "site", "web", "online", "digital",
+        "code", "api", "data",
+
+        // ── Media & content ───────────────────────────────────────────────────
+        "tv", "media", "news", "blog", "press", "pub",
+        "stream", "video", "music", "fm", "live",
+
+        // ── Commerce ──────────────────────────────────────────────────────────
+        "shop", "store", "market", "buy", "deal",
+
+        // ── Personal & portfolio ──────────────────────────────────────────────
+        "me", "name", "bio", "page", "link", "gg",
+
+        // ── Country codes — major ─────────────────────────────────────────────
+        "uk", "us", "ca", "au", "de", "fr", "jp", "cn",
+        "in", "br", "ru", "it", "es", "nl", "se", "no",
+        "dk", "fi", "pl", "pt", "mx", "ar", "kr", "sg",
+        "nz", "za", "ae", "sa", "il", "tr", "ch", "at",
+        "be", "cz", "hu", "ro", "gr", "th", "id", "ph",
+        "my", "vn", "pk", "bd", "ng", "ke", "gh",
+
+        // ── Country second-level common combos ────────────────────────────────
+        // (covers co.uk, com.au etc — the TLD extractor sees the last segment)
+        // Already handled since "uk" and "au" are in the list above
+
+        // ── Local network & self-hosted ───────────────────────────────────────
+        "local",       // mDNS — your-mac.local, raspberrypi.local
+        "internal",    // common corporate/home convention
+        "home",        // some routers use .home
+        "lan",         // common router default
+        "intranet",    // corporate
+        "corp",        // corporate
+        "private",     // some setups
+        "localdomain", // Linux default
+        "localhost",   // though this would never have a dot before it
+    ]
+
+    private func looksLikeURL(_ input: String) -> Bool {
+        if input.contains("://") { return true }
+        if input.hasPrefix("www.") { return true }
+
+        // ── IP address — with or without port ────────────────────────────────
+        let host = input.components(separatedBy: "/").first ?? input
+        let hostWithoutPort = host.components(separatedBy: ":").first ?? host
+        let parts = hostWithoutPort.components(separatedBy: ".")
+        if parts.count == 4 && parts.allSatisfy({ Int($0) != nil && Int($0)! <= 255 }) {
+            return true
+        }
+
+        // ── hostname:port — no dots, has colon with numeric port ─────────────
+        if !input.contains("."),
+          let colonIdx = input.firstIndex(of: ":"),
+          let port = Int(input[input.index(after: colonIdx)...].components(separatedBy: "/").first ?? "") {
+            return port > 0 && port <= 65535
+        }
+
+        // ── TLD check ─────────────────────────────────────────────────────────
+        if let dot = input.lastIndex(of: ".") {
+            let afterDot = String(input[input.index(after: dot)...])
+            let tld = afterDot.components(separatedBy: "/").first?
+                .components(separatedBy: ":").first?
+                .lowercased() ?? ""
+            return urlTLDs.contains(tld)
+        }
+
+        return false
     }
 
     private func isSystemMuted(deviceID: AudioDeviceID) -> Bool? {

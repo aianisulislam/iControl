@@ -2413,8 +2413,7 @@
       document.getElementById("openButton").addEventListener("click", () => {
         const value = document.getElementById("openInput").value.trim();
         if (!value) return;
-        const isUrl = /^(https?:\/\/|[a-zA-Z][a-zA-Z\d+\-.]*:\/\/)/.test(value);
-        send(isUrl ? { type: "url", url: value } : { type: "app", app: value });
+        send({ type: "open", target: value });
       });
 
       /* ====================================
