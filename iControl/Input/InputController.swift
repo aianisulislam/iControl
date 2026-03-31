@@ -13,6 +13,11 @@ final class InputController {
     private var lastKnownPosition: CGPoint
     private var lastMoveTime: Date = .distantPast
 
+    private var lastClickTime: Date = .distantPast
+    private var lastClickPosition: CGPoint = .zero
+    private var lastClickButton: String = ""
+    private var consecutiveClickCount: Int = 0
+
     private var currentPosition: CGPoint {
         CGEvent(source: nil)?.location ?? lastKnownPosition
     }
@@ -60,25 +65,27 @@ final class InputController {
     }
 
     func mouseClick(button: String) {
-        postClick(button: button, clickState: 1)
-    }
-
-    func doubleClick(button: String) {
-        let source = CGEventSource(stateID: .hidSystemState)
+        let now = Date()
         let point = currentPosition
-        postClick(button: button, clickState: 1, source: source, point: point)
-        Thread.sleep(forTimeInterval: 0.05)
-        postClick(button: button, clickState: 2, source: source, point: point)
-    }
+        let interval = now.timeIntervalSince(lastClickTime)
+        let dx = point.x - lastClickPosition.x
+        let dy = point.y - lastClickPosition.y
+        let withinPosition = (dx * dx + dy * dy) <= 16   // 4 px radius
 
-    func tripleClick(button: String) {
-        let source = CGEventSource(stateID: .hidSystemState)
-        let point = currentPosition
-        postClick(button: button, clickState: 1, source: source, point: point)
-        Thread.sleep(forTimeInterval: 0.05)
-        postClick(button: button, clickState: 2, source: source, point: point)
-        Thread.sleep(forTimeInterval: 0.05)
-        postClick(button: button, clickState: 3, source: source, point: point)
+        if button == lastClickButton,
+           interval <= NSEvent.doubleClickInterval,
+           withinPosition,
+           consecutiveClickCount < 3 {
+            consecutiveClickCount += 1
+        } else {
+            consecutiveClickCount = 1
+        }
+
+        lastClickTime = now
+        lastClickPosition = point
+        lastClickButton = button
+
+        postClick(button: button, clickState: Int64(consecutiveClickCount))
     }
 
     func mouseDown(button: String) {
