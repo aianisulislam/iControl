@@ -248,6 +248,16 @@
         font-size: 12px;
         position: relative;
       }
+      .btn-label {
+        position: absolute;
+        inset-block-end: 4px;
+        font-size: 8px;
+        opacity: 0.4;
+        letter-spacing: 0.001em;
+        pointer-events: none;
+        white-space: nowrap;
+        line-height: 1;
+      }
       button.active,
       button:active {
         background: var(--color-button-active);
@@ -1414,6 +1424,7 @@
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-tab"></use>
             </svg>
+            <span class="btn-label">Tab</span>
           </button>
           <button data-command='{"type":"key","key":"up"}'>
             <svg style="inline-size: 20px; block-size: 20px">
@@ -1424,6 +1435,7 @@
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-backspace"></use>
             </svg>
+            <span class="btn-label">Delete</span>
           </button>
           <div data-control="setVolume" data-value="60" class="slider row-3">
             <div class="slider-icon">
@@ -1451,31 +1463,37 @@
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-shift"></use>
             </svg>
+            <span class="btn-label">Shift</span>
           </button>
           <button data-command='{"type":"key","key":"return"}' class="col-2">
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-return"></use>
             </svg>
+            <span class="btn-label">Return</span>
           </button>
           <button data-modifier="ctrl" data-toggle>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-ctrl"></use>
             </svg>
+            <span class="btn-label">Ctrl</span>
           </button>
           <button data-modifier="opt" data-toggle>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-opt"></use>
             </svg>
+            <span class="btn-label">Opt</span>
           </button>
           <button data-modifier="cmd" data-toggle>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-cmd"></use>
             </svg>
+            <span class="btn-label">Cmd</span>
           </button>
           <button data-command='{"type":"key","key":"space"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-space"></use>
             </svg>
+            <span class="btn-label">Space</span>
           </button>
         </div>
         <div id="type" class="tab grid grid-4 hidden">
@@ -1484,38 +1502,45 @@
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">A</span>
+            <span class="btn-label">Select All</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+c"}'>
             <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: calc(50% - 20px); inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">C</span>
+            <span class="btn-label">Copy</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+v"}'>
             <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: calc(50% - 20px); inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">V</span>
+            <span class="btn-label">Paste</span>
           </button>
           <button data-command='{"type":"key","key":"backspace"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-backspace"></use>
             </svg>
+            <span class="btn-label">Delete</span>
           </button>
           <button data-command='{"type":"key","key":"tab"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-tab"></use>
             </svg>
+            <span class="btn-label">Tab</span>
           </button>
           <button id="cursorPad" class="col-2">
             <svg style="inline-size: 34px; block-size: 24px">
               <use href="#icon-cursorpad"></use>
             </svg>
+            <span class="btn-label">Move cursor</span>
           </button>
           <button data-command='{"type":"key","key":"return"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-return"></use>
             </svg>
+            <span class="btn-label">Return</span>
           </button>
           <div class="col-4">
             <textarea id="textInput" placeholder="Type your text here..."></textarea>
@@ -1565,61 +1590,73 @@
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-finder"></use>
             </svg>
+            <span class="btn-label">Finder</span>
           </button>
           <button data-command='{"type":"app","app":"System Settings"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-system-settings"></use>
             </svg>
+            <span class="btn-label">Settings</span>
           </button>
           <button data-command='{"type":"app","app":"Safari"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-safari"></use>
             </svg>
+            <span class="btn-label">Safari</span>
           </button>
           <button data-command='{"type":"app","app":"App Store"}'>
             <svg style="inline-size: 22px; block-size: 22px">
               <use href="#icon-app-store"></use>
             </svg>
+            <span class="btn-label">App Store</span>
           </button>
           <button data-command='{"type":"app","app":"Calendar"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-calendar"></use>
             </svg>
+            <span class="btn-label">Calendar</span>
           </button>
           <button data-command='{"type":"app","app":"Reminders"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-reminders"></use>
             </svg>
+            <span class="btn-label">Reminders</span>
           </button>
           <button data-command='{"type":"app","app":"Notes"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-notes"></use>
             </svg>
+            <span class="btn-label">Notes</span>
           </button>
           <button data-command='{"type":"app","app":"Photos"}'>
             <svg style="inline-size: 22px; block-size: 22px">
               <use href="#icon-photos"></use>
             </svg>
+            <span class="btn-label">Photos</span>
           </button>
           <button data-command='{"type":"app","app":"Messages"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-messages"></use>
             </svg>
+            <span class="btn-label">Messages</span>
           </button>
           <button data-command='{"type":"app","app":"Facetime"}'>
             <svg style="inline-size: 22px; block-size: 22px">
               <use href="#icon-facetime"></use>
             </svg>
+            <span class="btn-label">FaceTime</span>
           </button>
           <button data-command='{"type":"app","app":"Music"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-music"></use>
             </svg>
+            <span class="btn-label">Music</span>
           </button>
           <button data-command='{"type":"url","url":"https://www.youtube.com"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-youtube"></use>
             </svg>
+            <span class="btn-label">YouTube</span>
           </button>
           <div class="col-3">
             <input type="text" placeholder="App name, bundle id or URL" id="openInput"/>
@@ -1631,67 +1668,80 @@
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-mission-control"></use>
             </svg>
+            <span class="btn-label">Mission Ctrl</span>
           </button>
           <button data-command='{"type":"system","action":"launchpad"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-launchpad"></use>
             </svg>
+            <span class="btn-label">Launchpad</span>
           </button>
           <button data-command='{"type":"key","key":"ctrl+down"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-expose"></use>
             </svg>
+            <span class="btn-label">App Exposé</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+tab"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-window-switch"></use>
             </svg>
+            <span class="btn-label">App Switch</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+q"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-close"></use>
             </svg>
+            <span class="btn-label">Quit</span>
           </button>
           <button data-command='{"type":"system","action":"minimize"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-minimize"></use>
             </svg>
+            <span class="btn-label">Minimize</span>
           </button>
           <button data-command='{"type":"system","action":"fullscreen"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-fullscreen"></use>
             </svg>
+            <span class="btn-label">Fullscreen</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+space"}'>
             <svg style="inline-size: 20px; block-size: 20px">
               <use href="#icon-search-circle"></use>
             </svg>
+            <span class="btn-label">Spotlight</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+a"}'>
             <svg style="inline-size: 30px; block-size: 30px">
               <use href="#icon-select-all"></use>
             </svg>
+            <span class="btn-label">Select All</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+delete"}'>
             <svg style="inline-size: 22px; block-size: 22px">
               <use href="#icon-cmd-delete"></use>
             </svg>
+            <span class="btn-label">Delete</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+c"}'>
             <svg style="inline-size: 22px; block-size: 22px">
               <use href="#icon-copy"></use>
             </svg>
+            <span class="btn-label">Copy</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+v"}'>
             <svg style="inline-size: 22px; block-size: 22px">
               <use href="#icon-paste"></use>
             </svg>
+            <span class="btn-label">Paste</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+z"}'>
             <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: calc(50% - 20px); inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">Z</span>
+            <span class="btn-label">Undo</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+shift+z"}'>
             <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: calc(50% - 28px); inline-size: 10px; block-size: 10px">
@@ -1701,18 +1751,21 @@
               <use href="#icon-shift"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">Z</span>
+            <span class="btn-label">Redo</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+n"}'>
             <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: calc(50% - 20px); inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">N</span>
+            <span class="btn-label">New</span>
           </button>
           <button data-command='{"type":"key","key":"cmd+o"}'>
             <svg style="position: absolute; inset-block-start: 18px; inset-inline-start: calc(50% - 20px); inline-size: 10px; block-size: 10px">
               <use href="#icon-cmd"></use>
             </svg>
             <span style="font-size: 20px; font-weight: 300">O</span>
+            <span class="btn-label">Open</span>
           </button>
         </div>
       </section>
