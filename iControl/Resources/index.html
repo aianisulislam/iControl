@@ -2387,6 +2387,10 @@
               commandJSON.key = modifierPrefix + "+" + commandJSON.key;
             }
           }
+          if (commandJSON.type === "click") {
+            const f = getActiveFlags();
+            if (f.shift || f.ctrl || f.opt || f.cmd) commandJSON.flags = f;
+          }
           send(commandJSON);
         });
       });
@@ -2786,12 +2790,20 @@
             case "twoFingerMove":
               send({ type: "scroll", dx: dx * scrollSensitivity, dy: dy * scrollSensitivity });
               break;
-            case "tap":
-              send({ type: "click", button: "left" });
+            case "tap": {
+              const f = getActiveFlags();
+              const cmd = { type: "click", button: "left" };
+              if (f.shift || f.ctrl || f.opt || f.cmd) cmd.flags = f;
+              send(cmd);
               break;
-            case "twoFingerTap":
-              send({ type: "click", button: "right" });
+            }
+            case "twoFingerTap": {
+              const f = getActiveFlags();
+              const cmd = { type: "click", button: "right" };
+              if (f.shift || f.ctrl || f.opt || f.cmd) cmd.flags = f;
+              send(cmd);
               break;
+            }
             case "dragStart":
               touchpadEl.classList.add("drag-mode");
               send({ type: "mouseDown", button: "left" });
@@ -2938,6 +2950,14 @@
         ctrl: false, // held — sends kb:down / kb:up (future)
         opt: false, // held — sends kb:down / kb:up (future)
         cmd: false, // held — sends kb:down / kb:up (future)
+      };
+
+      const getActiveFlags = () => {
+        const isKeyboardOpen = !keyboardWrapper.classList.contains("hidden");
+        if (isKeyboardOpen) {
+          return { shift: kb.shift, ctrl: kb.ctrl, opt: kb.opt, cmd: kb.cmd };
+        }
+        return { shift: modifiers.shift, ctrl: modifiers.ctrl, opt: modifiers.opt, cmd: modifiers.cmd };
       };
 
       const kbSend = (payload) => {

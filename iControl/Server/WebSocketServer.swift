@@ -154,7 +154,7 @@ final class WebSocketServer {
                 inputController.typeText(string: value)
             }
         case "click":
-            inputController.mouseClick(button: command.button ?? "left")
+            inputController.mouseClick(button: command.button ?? "left", flags: command.flags)
         case "mouseDown":
             inputController.mouseDown(button: command.button ?? "left")
         case "mouseUp":

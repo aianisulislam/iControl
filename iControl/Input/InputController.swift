@@ -64,7 +64,7 @@ final class InputController {
         event?.post(tap: .cghidEventTap)
     }
 
-    func mouseClick(button: String) {
+    func mouseClick(button: String, flags: KbFlags? = nil) {
         let now = Date()
         let point = currentPosition
         let interval = now.timeIntervalSince(lastClickTime)
@@ -85,7 +85,7 @@ final class InputController {
         lastClickPosition = point
         lastClickButton = button
 
-        postClick(button: button, clickState: Int64(consecutiveClickCount))
+        postClick(button: button, clickState: Int64(consecutiveClickCount), flags: cgEventFlags(from: flags))
     }
 
     func mouseDown(button: String) {
@@ -355,36 +355,45 @@ final class InputController {
         }
     }
 
-    private func postClick(button: String, clickState: Int64) {
-        postClick(button: button, clickState: clickState, source: CGEventSource(stateID: .hidSystemState), point: currentPosition)
-    }
+    private func postClick(button: String, clickState: Int64, flags: CGEventFlags = []) {
+        let (mouseButton, downType, upType) = mouseButtonEventTypes(for: button)
+        let source = CGEventSource(stateID: .hidSystemState)
+        let point = currentPosition
 
-    private func postClick(button: String, clickState: Int64, source: CGEventSource?, point: CGPoint) {
-        let mouseButton: CGMouseButton
-        let downType: CGEventType
-        let upType: CGEventType
-
-        switch button {
-        case "right":
-            mouseButton = .right
-            downType = .rightMouseDown
-            upType = .rightMouseUp
-        case "middle":
-            mouseButton = .center
-            downType = .otherMouseDown
-            upType = .otherMouseUp
-        default:
-            mouseButton = .left
-            downType = .leftMouseDown
-            upType = .leftMouseUp
+        if !flags.isEmpty {
+            let modifierCodes = modifierKeyCodes(for: flags)
+            var accumulated: CGEventFlags = []
+            for code in modifierCodes {
+                accumulated.insert(self.flags(forPressedModifierKeyCode: code))
+                let modDown = CGEvent(keyboardEventSource: kbEventSource, virtualKey: code, keyDown: true)
+                modDown?.flags = accumulated
+                modDown?.post(tap: keyboardTapLocation)
+                usleep(1500)
+            }
         }
 
         let down = CGEvent(mouseEventSource: source, mouseType: downType, mouseCursorPosition: point, mouseButton: mouseButton)
         let up = CGEvent(mouseEventSource: source, mouseType: upType, mouseCursorPosition: point, mouseButton: mouseButton)
         down?.setIntegerValueField(.mouseEventClickState, value: clickState)
         up?.setIntegerValueField(.mouseEventClickState, value: clickState)
+        if !flags.isEmpty {
+            down?.flags = flags
+            up?.flags = flags
+        }
         down?.post(tap: .cghidEventTap)
         up?.post(tap: .cghidEventTap)
+
+        if !flags.isEmpty {
+            let modifierCodes = modifierKeyCodes(for: flags)
+            var accumulated = flags
+            for code in modifierCodes.reversed() {
+                accumulated.remove(self.flags(forPressedModifierKeyCode: code))
+                let modUp = CGEvent(keyboardEventSource: kbEventSource, virtualKey: code, keyDown: false)
+                modUp?.flags = accumulated
+                modUp?.post(tap: keyboardTapLocation)
+                usleep(1500)
+            }
+        }
     }
 
     private func postKey(keyCode: CGKeyCode, flags: CGEventFlags = [], tap: CGEventTapLocation? = nil) {
