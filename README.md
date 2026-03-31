@@ -114,11 +114,42 @@ Browser (any device) ──WebSocket──▶ Swift HTTP/WS server ──▶ mac
 ## Quick start
 
 1. Download and open `iControl.app`  
-2. Scan the QR code from the menu bar  
-3. Grant Accessibility permission  
-4. Done  
+2. **Bypass Gatekeeper** (see below — required on first launch)  
+3. Scan the QR code from the menu bar  
+4. Grant Accessibility permission  
+5. Done  
 
 Your Mac is now always ready.
+
+---
+
+## First launch — Gatekeeper
+
+iControl is not notarized by Apple. macOS Gatekeeper will block the app on first launch with a message like *"iControl cannot be opened because it is from an unidentified developer"* or *"Apple could not verify iControl is free of malware."*
+
+**This is expected.** The app makes no network calls outside your LAN, has no external dependencies, and the full source code is in this repository. You can audit every line before running it.
+
+To open it anyway:
+
+**Option A — Right-click method (recommended)**
+1. Right-click (or Control-click) `iControl.app` in Finder  
+2. Choose **Open** from the context menu  
+3. Click **Open** in the dialog that appears  
+
+You only need to do this once. After the first launch, macOS remembers the exception and opens normally.
+
+**Option B — System Settings**
+1. Try to open the app normally — it will be blocked  
+2. Go to **System Settings → Privacy & Security**  
+3. Scroll down to the Security section — you'll see a message about iControl  
+4. Click **Open Anyway**, then confirm  
+
+**Option C — Remove the quarantine flag (command line)**
+```bash
+xattr -d com.apple.quarantine /path/to/iControl.app
+```
+
+> **Why isn't it notarized?** Notarization requires an Apple Developer account ($99/year). iControl is a free, open-source tool with no revenue. The source code is fully open — if you prefer, build it yourself from source in Xcode instead of using the downloaded binary.
 
 ---
 
