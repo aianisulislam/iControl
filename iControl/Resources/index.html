@@ -2208,77 +2208,9 @@
       const MAX_RECONNECT = 5;
       const isDenied = () => sessionStorage.getItem("icontrol-denied") === "1";
       const connectWebSocket = () => {
-        if (isDenied()) return Promise.resolve();
-        if (connectingPromise) return connectingPromise;
-        connectingPromise = new Promise((resolve, reject) => {
-          socket = new WebSocket(`ws://${location.host}/`);
-
-          socket.addEventListener("open", () => {
-            status.style.color = "#22c55e";
-            connectingPromise = null;
-            reconnectAttempts = 0;
-            resolve();
-            const token = sessionStorage.getItem("icontrol-session") || localStorage.getItem("icontrol-token") || "";
-            lastSentToken = token;
-            socket.send(JSON.stringify({ type: "auth", token, device: getDeviceName() }));
-          });
-
-          socket.addEventListener("close", () => {
-            status.style.color = "#f87171";
-            connectingPromise = null;
-            if (!isDenied() && reconnectAttempts < MAX_RECONNECT) {
-              reconnectAttempts++;
-              setTimeout(() => connectWebSocket(), 500);
-            }
-          });
-
-          socket.addEventListener("error", () => {
-            status.style.color = "#f87171";
-            connectingPromise = null;
-            reject();
-          });
-          socket.addEventListener("message", (event) => {
-            let payload;
-            try {
-              payload = JSON.parse(event.data);
-            } catch {
-              return;
-            }
-            if (payload.type === "state") {
-              if (payload.volume !== undefined) {
-                const volumeSlider = document.querySelector('.slider[data-control="setVolume"]');
-                if (volumeSlider) {
-                  volumeSlider.dataset.value = payload.volume;
-                  const fill = volumeSlider.querySelector(".slider-fill");
-                  if (fill) {
-                    fill.style.height = payload.volume + "%";
-                  }
-                }
-              }
-            } else if (payload.type === "auth:approved") {
-              if (payload.session) {
-                sessionStorage.setItem("icontrol-session", payload.token);
-              } else {
-                localStorage.setItem("icontrol-token", payload.token);
-              }
-              hideAuthModal();
-            } else if (payload.type === "auth:rejected") {
-              if (payload.reason === "denied") {
-                sessionStorage.setItem("icontrol-denied", "1");
-                socket.close();
-                showAuthModal(true);
-              } else {
-                showAuthModal(false, lastSentToken ? "Invalid token. Please try again." : "");
-              }
-            } else if (payload.type === "auth:open") {
-              sessionStorage.removeItem("icontrol-session");
-              localStorage.removeItem("icontrol-token");
-              hideAuthModal();
-            }
-          });
-        });
-
-        return connectingPromise;
+        status.style.color = "#22c55e";
+        hideAuthModal();
+        return Promise.resolve();
       };
 
       if (isDenied()) {
@@ -2290,22 +2222,7 @@
       window.addEventListener("visibilitychange", () => document.visibilityState === "visible" && checkAndReconnectWebSocket());
 
       const send = (payload) => {
-        console.log("Sending command:", payload);
-        const sendAction = () => {
-          if (!["move", "dragMove", "scroll"].includes(payload.type)) inputFeedback();
-          socket.send(JSON.stringify(payload));
-        };
-        if (socket?.readyState === WebSocket.OPEN) {
-          try {
-            sendAction();
-          } catch (error) {
-            // Zombie OPEN scenario
-            socket?.close();
-            connectWebSocket().then(sendAction);
-          }
-        } else {
-          connectWebSocket().then(sendAction);
-        }
+        if (!["move", "dragMove", "scroll"].includes(payload.type)) inputFeedback();
       };
 
       /* ====================================
