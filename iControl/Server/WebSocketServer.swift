@@ -2,6 +2,12 @@ import AppKit
 import Foundation
 import Network
 
+private let maxInboundMessagesPerSecond = 60
+private let rateLimitWindowDurationNanoseconds: UInt64 = 1_000_000_000
+private let maxTextCommandPayloadBytes = 1_048_576
+private let maxDefaultCommandPayloadBytes = 4_096
+private let maxInboundFrameBytes = maxTextCommandPayloadBytes + 14
+
 
 struct KbFlags: Codable {
     let shift: Bool?
@@ -24,6 +30,10 @@ struct RemoteCommand: Decodable {
     let flags: KbFlags?
     let token: String?
     let device: String?
+}
+
+private struct RemoteCommandEnvelope: Decodable {
+    let type: String
 }
 
 enum CommandValue: Decodable {
@@ -66,6 +76,8 @@ final class WebSocketServer {
     private let inputController: InputController
     private let authContext: AuthContext
     private var authState: ConnectionAuthState = .pending
+    private var currentRateLimitWindowStart = DispatchTime.now().uptimeNanoseconds
+    private var messagesReceivedInCurrentWindow = 0
 
     init(connection: NWConnection, inputController: InputController, authContext: AuthContext) {
         self.connection = connection
@@ -94,7 +106,7 @@ final class WebSocketServer {
     }
 
     private func receiveFrame() {
-        connection.receive(minimumIncompleteLength: 2, maximumLength: 65_536) { [weak self] data, _, isComplete, error in
+        connection.receive(minimumIncompleteLength: 2, maximumLength: maxInboundFrameBytes) { [weak self] data, _, isComplete, error in
             guard let self else {
                 return
             }
@@ -127,6 +139,16 @@ final class WebSocketServer {
     }
 
     private func handleText(_ payload: Data) {
+        guard allowIncomingMessage() else {
+            disconnectForRateLimitExceeded()
+            return
+        }
+
+        guard isAllowedPayloadSize(payload) else {
+            disconnectForPayloadSizeViolation()
+            return
+        }
+
         guard let command = try? JSONDecoder().decode(RemoteCommand.self, from: payload) else {
             return
         }
@@ -193,6 +215,53 @@ final class WebSocketServer {
         default:
             break
         }
+    }
+
+    private func allowIncomingMessage() -> Bool {
+        let now = DispatchTime.now().uptimeNanoseconds
+
+        if now - currentRateLimitWindowStart >= rateLimitWindowDurationNanoseconds {
+            currentRateLimitWindowStart = now
+            messagesReceivedInCurrentWindow = 0
+        }
+
+        guard messagesReceivedInCurrentWindow < maxInboundMessagesPerSecond else {
+            return false
+        }
+
+        messagesReceivedInCurrentWindow += 1
+        return true
+    }
+
+    private func disconnectForRateLimitExceeded() {
+        disconnect(closeCode: 1008)
+    }
+
+    private func disconnectForPayloadSizeViolation() {
+        disconnect(closeCode: 1009)
+    }
+
+    private func disconnect(closeCode: UInt16) {
+        var encodedCloseCode = closeCode.bigEndian
+        let payload = withUnsafeBytes(of: &encodedCloseCode) { Data($0) }
+        sendFrame(opcode: 0x8, payload: payload)
+        connection.cancel()
+    }
+
+    private func isAllowedPayloadSize(_ payload: Data) -> Bool {
+        guard payload.count <= maxTextCommandPayloadBytes else {
+            return false
+        }
+
+        guard payload.count > maxDefaultCommandPayloadBytes else {
+            return true
+        }
+
+        guard let envelope = try? JSONDecoder().decode(RemoteCommandEnvelope.self, from: payload) else {
+            return false
+        }
+
+        return envelope.type == "text"
     }
 
     // MARK: - Auth message handling
