@@ -423,7 +423,9 @@
         border-inline-end: 1px solid var(--color-border);
         z-index: 101;
         transform: translateX(-100%);
-        overflow-block: auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
         padding: var(--padding);
       }
       body.vertical-rl #settings-drawer {
@@ -433,6 +435,21 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        flex-shrink: 0;
+      }
+      #drawer-content {
+        flex: 1;
+        min-block-size: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding-block-end: calc(var(--padding) + env(safe-area-inset-bottom, 0px));
+      }
+      #drawer-content::-webkit-scrollbar {
+        display: none;
       }
       #drawer-close {
         inline-size: 36px;
@@ -460,6 +477,79 @@
       .drawer-value {
         font-variant-numeric: tabular-nums;
         color: var(--color-text);
+      }
+      .drawer-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.85rem 0;
+        border-block-start: 1px solid rgba(71, 85, 105, 0.18);
+      }
+      .drawer-toggle:first-of-type {
+        border-block-start: none;
+      }
+      .drawer-toggle-text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+      .drawer-toggle-title {
+        font-size: 0.95rem;
+        color: var(--color-text);
+      }
+      .drawer-toggle-subtitle {
+        font-size: 0.75rem;
+        color: var(--color-text-muted);
+      }
+      .drawer-switch {
+        position: relative;
+        inline-size: 52px;
+        block-size: 32px;
+        flex-shrink: 0;
+      }
+      .drawer-switch input {
+        position: absolute;
+        opacity: 0;
+        inset: 0;
+        margin: 0;
+        padding: 0;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+      }
+      .drawer-switch-track {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: rgba(71, 85, 105, 0.45);
+        transition:
+          background 0.2s ease,
+          transform 0.2s ease;
+      }
+      .drawer-switch-track::after {
+        content: "";
+        position: absolute;
+        inset-block-start: 3px;
+        inset-inline-start: 3px;
+        inline-size: 26px;
+        block-size: 26px;
+        border-radius: 50%;
+        background: var(--color-text);
+        transition: transform 0.2s ease;
+      }
+      .drawer-switch input:checked + .drawer-switch-track {
+        background: var(--color-button-active);
+      }
+      .drawer-switch input:checked + .drawer-switch-track::after {
+        transform: translateX(20px);
+      }
+      .drawer-version {
+        margin-block-start: 1.5rem;
+        font-size: 0.8rem;
+        color: var(--color-text-muted);
+        text-align: center;
+        letter-spacing: 0.06em;
       }
       input[type="range"] {
         -webkit-appearance: none;
@@ -2058,22 +2148,67 @@
           </svg>
         </button>
       </div>
-      <div class="drawer-section">
-        <label class="drawer-label" for="sensitivity-touchpad">
-          <span>Touchpad</span>
-          <span class="drawer-value" id="val-touchpad">1x</span>
-        </label>
-        <input type="range" id="sensitivity-touchpad" min="0.25" max="4" step="0.25" value="1" />
-        <label class="drawer-label" for="sensitivity-scroll">
-          <span>Scroll</span>
-          <span class="drawer-value" id="val-scroll">1x</span>
-        </label>
-        <input type="range" id="sensitivity-scroll" min="0.25" max="4" step="0.25" value="1" />
-        <label class="drawer-label" for="sensitivity-cursorpad">
-          <span>Cursorpad</span>
-          <span class="drawer-value" id="val-cursorpad">1x</span>
-        </label>
-        <input type="range" id="sensitivity-cursorpad" min="0.25" max="4" step="0.25" value="1" />
+      <div id="drawer-content">
+        <div class="drawer-section">
+          <label class="drawer-label" for="sensitivity-touchpad">
+            <span>Touchpad</span>
+            <span class="drawer-value" id="val-touchpad">1x</span>
+          </label>
+          <input type="range" id="sensitivity-touchpad" min="0.25" max="4" step="0.25" value="1" />
+          <label class="drawer-label" for="sensitivity-scroll">
+            <span>Scroll</span>
+            <span class="drawer-value" id="val-scroll">1x</span>
+          </label>
+          <input type="range" id="sensitivity-scroll" min="0.25" max="4" step="0.25" value="1" />
+          <label class="drawer-label" for="sensitivity-cursorpad">
+            <span>Cursorpad</span>
+            <span class="drawer-value" id="val-cursorpad">1x</span>
+          </label>
+          <input type="range" id="sensitivity-cursorpad" min="0.25" max="4" step="0.25" value="1" />
+        </div>
+        <div class="drawer-section">
+          <label class="drawer-toggle" for="toggle-vibration-feedback">
+            <span class="drawer-toggle-text">
+              <span class="drawer-toggle-title">Vibration Feedback</span>
+              <span class="drawer-toggle-subtitle">Use haptics when sending commands</span>
+            </span>
+            <span class="drawer-switch">
+              <input type="checkbox" id="toggle-vibration-feedback" />
+              <span class="drawer-switch-track"></span>
+            </span>
+          </label>
+          <label class="drawer-toggle" for="toggle-sound-feedback">
+            <span class="drawer-toggle-text">
+              <span class="drawer-toggle-title">Sound Feedback</span>
+              <span class="drawer-toggle-subtitle">Play a short click for actions</span>
+            </span>
+            <span class="drawer-switch">
+              <input type="checkbox" id="toggle-sound-feedback" />
+              <span class="drawer-switch-track"></span>
+            </span>
+          </label>
+          <label class="drawer-toggle" for="toggle-horizontal-scroll">
+            <span class="drawer-toggle-text">
+              <span class="drawer-toggle-title">Reverse Horizontal Scroll</span>
+              <span class="drawer-toggle-subtitle">Invert left and right scrolling</span>
+            </span>
+            <span class="drawer-switch">
+              <input type="checkbox" id="toggle-horizontal-scroll" />
+              <span class="drawer-switch-track"></span>
+            </span>
+          </label>
+          <label class="drawer-toggle" for="toggle-vertical-scroll">
+            <span class="drawer-toggle-text">
+              <span class="drawer-toggle-title">Reverse Vertical Scroll</span>
+              <span class="drawer-toggle-subtitle">Invert up and down scrolling</span>
+            </span>
+            <span class="drawer-switch">
+              <input type="checkbox" id="toggle-vertical-scroll" />
+              <span class="drawer-switch-track"></span>
+            </span>
+          </label>
+        </div>
+        <p class="drawer-version" id="drawer-version"></p>
       </div>
     </aside>
     <div id="auth-modal" class="hidden">
@@ -2157,27 +2292,48 @@
       const hideAuthModal = () => {
         document.getElementById("auth-modal").classList.add("hidden");
       };
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const readBooleanSetting = (key, fallback = true) => {
+        const stored = localStorage.getItem(key);
+        if (stored === null) return fallback;
+        return stored === "1";
+      };
+      let audioCtx;
+      const getAudioContext = () => {
+        if (audioCtx) return audioCtx;
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return null;
+        audioCtx = new AudioContextClass();
+        return audioCtx;
+      };
 
       const inputFeedback = () => {
-        navigator?.vibrate?.(15);
-        if (audioCtx.state === "suspended") audioCtx.resume();
-        const now = audioCtx.currentTime;
-        const osc = audioCtx.createOscillator();
+        if (vibrationFeedbackEnabled) {
+          navigator?.vibrate?.(15);
+        }
+
+        if (!soundFeedbackEnabled) return;
+
+        const context = getAudioContext();
+        if (!context) return;
+        if (context.state === "suspended") context.resume();
+        const now = context.currentTime;
+        const osc = context.createOscillator();
         osc.type = "sine";
         osc.frequency.setValueAtTime(600, now);
-        const gain = audioCtx.createGain();
+        const gain = context.createGain();
         gain.gain.setValueAtTime(0.0001, now);
         gain.gain.exponentialRampToValueAtTime(0.2, now + 0.001);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
         osc.connect(gain);
-        gain.connect(audioCtx.destination);
+        gain.connect(context.destination);
         osc.start(now);
         osc.stop(now + 0.01);
       };
 
       const resumeAudio = () => {
-        if (audioCtx.state === "suspended") audioCtx.resume();
+        if (!soundFeedbackEnabled) return;
+        const context = getAudioContext();
+        if (context?.state === "suspended") context.resume();
       };
 
       document.addEventListener("touchstart", resumeAudio, { passive: true });
@@ -2197,6 +2353,10 @@
       let touchpadSensitivity = parseFloat(localStorage.getItem("sens-touchpad") ?? "1");
       let scrollSensitivity = parseFloat(localStorage.getItem("sens-scroll") ?? "1");
       let cursorpadSensitivity = parseFloat(localStorage.getItem("sens-cursorpad") ?? "1");
+      let vibrationFeedbackEnabled = readBooleanSetting("feedback-vibration", true);
+      let soundFeedbackEnabled = readBooleanSetting("feedback-sound", true);
+      let reverseHorizontalScroll = readBooleanSetting("scroll-reverse-horizontal", false);
+      let reverseVerticalScroll = readBooleanSetting("scroll-reverse-vertical", false);
 
       /* ====================================
        * Connection handling
@@ -2306,6 +2466,12 @@
         } else {
           connectWebSocket().then(sendAction);
         }
+      };
+
+      const sendScroll = ({ dx = 0, dy = 0 }) => {
+        const adjustedDx = dx * scrollSensitivity * (reverseHorizontalScroll ? -1 : 1);
+        const adjustedDy = dy * scrollSensitivity * (reverseVerticalScroll ? -1 : 1);
+        send({ type: "scroll", dx: adjustedDx, dy: adjustedDy });
       };
 
       /* ====================================
@@ -2842,7 +3008,7 @@
               send({ type: "move", dx: dx * touchpadSensitivity, dy: dy * touchpadSensitivity });
               break;
             case "twoFingerMove":
-              send({ type: "scroll", dx: dx * scrollSensitivity, dy: dy * scrollSensitivity });
+              sendScroll({ dx, dy });
               break;
             case "tap": {
               const f = getActiveFlags();
@@ -2893,7 +3059,7 @@
             Math.abs(angle + 90) < 22.5 ||
             Math.abs(Math.abs(angle) - 180) < 22.5;
           if (!isCardinal) return;
-          send({ type: "scroll", dx: dx * scrollSensitivity, dy: dy * scrollSensitivity });
+          sendScroll({ dx, dy });
         },
       );
 
@@ -3224,6 +3390,58 @@
           localStorage.setItem(key, v);
         });
       });
+
+      const toggleSettings = [
+        {
+          id: "toggle-vibration-feedback",
+          key: "feedback-vibration",
+          get: () => vibrationFeedbackEnabled,
+          set: (value) => {
+            vibrationFeedbackEnabled = value;
+          },
+        },
+        {
+          id: "toggle-sound-feedback",
+          key: "feedback-sound",
+          get: () => soundFeedbackEnabled,
+          set: (value) => {
+            soundFeedbackEnabled = value;
+            if (value) {
+              resumeAudio();
+            }
+          },
+        },
+        {
+          id: "toggle-horizontal-scroll",
+          key: "scroll-reverse-horizontal",
+          get: () => reverseHorizontalScroll,
+          set: (value) => {
+            reverseHorizontalScroll = value;
+          },
+        },
+        {
+          id: "toggle-vertical-scroll",
+          key: "scroll-reverse-vertical",
+          get: () => reverseVerticalScroll,
+          set: (value) => {
+            reverseVerticalScroll = value;
+          },
+        },
+      ];
+
+      toggleSettings.forEach(({ id, key, get, set }) => {
+        const input = document.getElementById(id);
+        input.checked = get();
+        input.addEventListener("change", () => {
+          const value = input.checked;
+          set(value);
+          localStorage.setItem(key, value ? "1" : "0");
+        });
+      });
+
+      const versionMetaContent = document.querySelector('meta[name="version"]')?.content?.trim();
+      const drawerVersion = document.getElementById("drawer-version");
+      drawerVersion.textContent = versionMetaContent ? `v${versionMetaContent}` : "";
 
       /* ── OTP digit box behaviour ── */
       (function () {
