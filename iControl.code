@@ -1,3 +1,1205 @@
+§ iControl/App/iControlApp.swift
+import AppKit
+import SwiftUI
+import CoreImage
+import ServiceManagement
+import SystemConfiguration
+import LocalAuthentication
+
+// MARK: - AuthContext
+
+final class AuthContext {
+    var mode: String
+    var persistentToken: String
+    var approvedSessions: Set<String> = []
+
+    static let tokenChars = Array("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
+
+    init(mode: String, token: String) {
+        self.mode = mode
+        self.persistentToken = token
+    }
+
+    func isTokenValid(_ token: String) -> Bool {
+        token == persistentToken || approvedSessions.contains(token)
+    }
+
+    func isWellFormed(_ token: String) -> Bool {
+        guard token.count == 4 else { return false }
+        let validChars = CharacterSet.uppercaseLetters.union(.decimalDigits)
+        return token.unicodeScalars.allSatisfy { validChars.contains($0) }
+    }
+
+    static func generateToken() -> String {
+        String((0..<4).map { _ in tokenChars[Int.random(in: 0..<tokenChars.count)] })
+    }
+}
+
+// MARK: - App
+
+@main
+struct iControlApp: App {
+    private let server: HTTPServer
+    private let authContext: AuthContext
+    @AppStorage("launchAtLogin") private var launchAtLogin = false
+    @AppStorage("authMode") private var authMode = "open"
+    @AppStorage("authToken") private var authToken = ""
+    @State private var showSecuritySubmenu = false
+
+    init() {
+        // Sync saved config
+        _launchAtLogin = AppStorage(wrappedValue: SMAppService.mainApp.status == .enabled, "launchAtLogin")
+
+        // Initialize auth token if not present
+        let existingToken = UserDefaults.standard.string(forKey: "authToken") ?? ""
+        let token: String
+        if existingToken.isEmpty {
+            token = AuthContext.generateToken()
+            UserDefaults.standard.set(token, forKey: "authToken")
+        } else {
+            token = existingToken
+        }
+
+        // Default to secure mode on first launch
+        if UserDefaults.standard.object(forKey: "authMode") == nil {
+            UserDefaults.standard.set("open", forKey: "authMode")
+        }
+        let mode = UserDefaults.standard.string(forKey: "authMode") ?? "open"
+
+        let ctx = AuthContext(mode: mode, token: token)
+        authContext = ctx
+
+        // Start the web server
+        let inputController = InputController()
+        server = HTTPServer(port: 4040, inputController: inputController, authContext: ctx)
+        server.start()
+    }
+
+    var body: some Scene {
+        MenuBarExtra {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text("iControl ")
+                        .font(.system(size: 13, weight: .bold))
+                    Text("v\(Self.appVersion)")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+
+                Text("Scan the QR code or open the URL on any device on the same network:")
+                    .font(.system(size: 12))
+                    .foregroundColor(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
+
+                VStack(alignment: .center, spacing: 8) {
+                    let qrURL = Self.buildURL(
+                        base: Self.hostnameURL() ?? Self.ipURL() ?? "http://localhost:4040",
+                        token: authMode == "secure" ? authToken : nil
+                    )
+
+                    if let qrImage = Self.generateQRCode(from: qrURL) {
+                        Image(nsImage: qrImage)
+                            .interpolation(.none)
+                            .resizable()
+                            .aspectRatio(1, contentMode: .fit)
+                            .frame(width: 160, height: 160)
+                    }
+
+                    if let base = Self.hostnameURL() {
+                        let url = Self.buildURL(base: base, token: authMode == "secure" ? authToken : nil)
+                        Text(url)
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    if let base = Self.ipURL() {
+                        let url = Self.buildURL(base: base, token: authMode == "secure" ? authToken : nil)
+                        Text(url)
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    if authMode == "secure" {
+                      Text("Token: \(authToken)")
+                              .font(.system(size: 11))
+                              .foregroundColor(.secondary)
+                              .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+
+                Divider()
+
+                // Connection Security submenu row
+                Button(action: { withAnimation(.easeInOut(duration: 0.18)) { showSecuritySubmenu.toggle() } }) {
+                    HStack(spacing: 4) {
+                        Text("Connection Security")
+                            .font(.system(size: 13))
+                        Spacer()
+                        Text(authMode == "secure" ? "Secure" : "Open")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .rotationEffect(.degrees(showSecuritySubmenu ? 90 : 0))
+                    }
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+
+                if showSecuritySubmenu {
+                    VStack(spacing: 0) {
+                        Button(action: {
+                            showSecuritySubmenu = false
+                            authModePickerBinding.wrappedValue = "secure"
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .opacity(authMode == "secure" ? 1 : 0)
+                                Text("Secure")
+                                    .font(.system(size: 13))
+                                Spacer()
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.leading, 24)
+                        .padding(.trailing, 12)
+                        .padding(.vertical, 6)
+
+                        Button(action: {
+                            showSecuritySubmenu = false
+                            authModePickerBinding.wrappedValue = "open"
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .opacity(authMode == "open" ? 1 : 0)
+                                Text("Open")
+                                    .font(.system(size: 13))
+                                Spacer()
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.leading, 24)
+                        .padding(.trailing, 12)
+                        .padding(.vertical, 6)
+                    }
+                }
+
+                if authMode == "secure" {
+                    Button("Regenerate Token") {
+                        let newToken = AuthContext.generateToken()
+                        authToken = newToken
+                        authContext.persistentToken = newToken
+                        authContext.approvedSessions = []
+                        UserDefaults.standard.set(newToken, forKey: "authToken")
+                        server.disconnectAllWebSockets()
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                }
+
+                Divider()
+
+                Button(action: {
+                    launchAtLogin.toggle()
+                    do {
+                        if launchAtLogin {
+                            try SMAppService.mainApp.register()
+                        } else {
+                            try SMAppService.mainApp.unregister()
+                        }
+                    } catch {
+                        print("iControl: failed to update launch at login: \(error)")
+                    }
+                }) {
+                    HStack {
+                        Text("Open at Login")
+                            .font(.system(size: 13))
+                        Spacer()
+                        if launchAtLogin {
+                            Text("✓")
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+
+                Button("Quit") {
+                    NSApplication.shared.terminate(nil)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+            }
+            .frame(width: 240)
+        } label: {
+            Image("MenuBarIcon")
+                .renderingMode(.template)
+        }
+        .menuBarExtraStyle(.window)
+    }
+
+    // MARK: - Auth mode helpers
+
+    /// Custom binding so the picker setter only fires on real user interaction,
+    /// never during SwiftUI's re-render cycle (which would re-trigger LA auth
+    /// every time the MenuBarExtra window is opened while mode == "open").
+    private var authModePickerBinding: Binding<String> {
+        Binding(
+            get: { authMode },
+            set: { newValue in
+                guard newValue != authMode else { return }
+                if newValue == "open" {
+                    switchToOpenMode()
+                } else {
+                    setAuthMode("secure")
+                }
+            }
+        )
+    }
+
+    private func setAuthMode(_ mode: String) {
+        authMode = mode
+        authContext.mode = mode
+        UserDefaults.standard.set(mode, forKey: "authMode")
+        if mode == "secure" {
+            let newToken = AuthContext.generateToken()
+            authToken = newToken
+            authContext.persistentToken = newToken
+            authContext.approvedSessions = []
+            UserDefaults.standard.set(newToken, forKey: "authToken")
+        }
+        server.disconnectAllWebSockets()
+    }
+
+    private func switchToOpenMode() {
+        let context = LAContext()
+        var error: NSError?
+        guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
+            actuallySetOpenMode()
+            return
+        }
+        context.evaluatePolicy(
+            .deviceOwnerAuthentication,
+            localizedReason: "disable security connection. Allowing this will allow any device in the same network to connect to your Mac via iControl."
+        ) { success, _ in
+            DispatchQueue.main.async {
+                if success { self.actuallySetOpenMode() }
+            }
+        }
+    }
+
+    private func actuallySetOpenMode() {
+        authMode = "open"
+        authContext.mode = "open"
+        UserDefaults.standard.set("open", forKey: "authMode")
+        server.disconnectAllWebSockets()
+    }
+
+    // MARK: - URL helpers
+
+    static func buildURL(base: String, token: String?) -> String {
+        guard let token, !token.isEmpty else { return base }
+        return "\(base)?token=\(token)"
+    }
+
+    static func hostnameURL() -> String? {
+        guard let hostname = SCDynamicStoreCopyLocalHostName(nil) as String? else { return nil }
+        return "http://\(hostname).local:4040"
+    }
+
+    static func ipURL() -> String? {
+        guard let ip = localIPAddress() else { return nil }
+        return "http://\(ip):4040"
+    }
+
+    private static func localIPAddress() -> String? {
+        var addr = sockaddr_in()
+        addr.sin_family = sa_family_t(AF_INET)
+        addr.sin_port = 80
+        addr.sin_addr.s_addr = inet_addr("8.8.8.8")
+
+        let sock = socket(AF_INET, SOCK_DGRAM, 0)
+        guard sock != -1 else { return nil }
+        defer { close(sock) }
+
+        let connected = withUnsafePointer(to: &addr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                connect(sock, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
+        }
+        guard connected == 0 else { return nil }
+
+        var local = sockaddr_in()
+        var len = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let named = withUnsafeMutablePointer(to: &local) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                getsockname(sock, $0, &len)
+            }
+        }
+        guard named == 0 else { return nil }
+
+        var buffer = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
+        inet_ntop(AF_INET, &local.sin_addr, &buffer, socklen_t(INET_ADDRSTRLEN))
+        return String(cString: buffer)
+    }
+
+    static var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+    }
+
+    static func generateQRCode(from string: String) -> NSImage? {
+        guard let data = string.data(using: .utf8),
+              let filter = CIFilter(name: "CIQRCodeGenerator") else {
+            return nil
+        }
+
+        filter.setValue(data, forKey: "inputMessage")
+        filter.setValue("M", forKey: "inputCorrectionLevel")
+
+        guard let outputImage = filter.outputImage else { return nil }
+
+        let scaled = outputImage.transformed(by: CGAffineTransform(scaleX: 10, y: 10))
+        let rep = NSCIImageRep(ciImage: scaled)
+        let nsImage = NSImage(size: rep.size)
+        nsImage.addRepresentation(rep)
+        return nsImage
+    }
+}
+
+§ iControl/Input/InputController.swift
+import AppKit
+import CoreAudio
+import Foundation
+
+final class InputController {
+    var onVolumeChanged: ((Double) -> Void)?
+
+    private let volumeObserverQueue = DispatchQueue(label: "iControl.VolumeObserver")
+    private let keyboardEventSource = CGEventSource(stateID: .hidSystemState)
+    private let kbEventSource = CGEventSource(stateID: .hidSystemState)
+    private let keyboardTapLocation: CGEventTapLocation = .cghidEventTap
+    private let controlArrowTapLocation: CGEventTapLocation = .cgAnnotatedSessionEventTap
+    private var lastKnownPosition: CGPoint
+    private var lastMoveTime: Date = .distantPast
+
+    private var lastClickTime: Date = .distantPast
+    private var lastClickPosition: CGPoint = .zero
+    private var lastClickButton: String = ""
+    private var consecutiveClickCount: Int = 0
+
+    private var currentPosition: CGPoint {
+        CGEvent(source: nil)?.location ?? lastKnownPosition
+    }
+
+    init() {
+        lastKnownPosition = CGEvent(source: nil)?.location ?? .zero
+        startObservingVolumeChanges()
+    }
+
+    func moveMouse(dx: Double, dy: Double) {
+        let now = Date()
+        if now.timeIntervalSince(lastMoveTime) > 1 {
+            lastKnownPosition = CGEvent(source: nil)?.location ?? lastKnownPosition
+        }
+
+        let nextPoint = CGPoint(
+            x: lastKnownPosition.x + dx,
+            y: lastKnownPosition.y + dy
+        )
+
+        let event = CGEvent(
+            mouseEventSource: nil,
+            mouseType: .mouseMoved,
+            mouseCursorPosition: nextPoint,
+            mouseButton: .left
+        )
+        event?.setIntegerValueField(.mouseEventDeltaX, value: Int64(dx.rounded()))
+        event?.setIntegerValueField(.mouseEventDeltaY, value: Int64(dy.rounded()))
+        event?.post(tap: .cghidEventTap)
+
+        lastKnownPosition = nextPoint
+        lastMoveTime = now
+    }
+
+    func scroll(dx: Double, dy: Double) {
+        let event = CGEvent(
+            scrollWheelEvent2Source: nil,
+            units: .pixel,
+            wheelCount: 2,
+            wheel1: Int32(dy),
+            wheel2: Int32(dx),
+            wheel3: 0
+        )
+        event?.post(tap: .cghidEventTap)
+    }
+
+    func mouseClick(button: String, flags: KbFlags? = nil) {
+        let now = Date()
+        let point = currentPosition
+        let interval = now.timeIntervalSince(lastClickTime)
+        let dx = point.x - lastClickPosition.x
+        let dy = point.y - lastClickPosition.y
+        let withinPosition = (dx * dx + dy * dy) <= 16   // 4 px radius
+
+        if button == lastClickButton,
+           interval <= NSEvent.doubleClickInterval,
+           withinPosition,
+           consecutiveClickCount < 3 {
+            consecutiveClickCount += 1
+        } else {
+            consecutiveClickCount = 1
+        }
+
+        lastClickTime = now
+        lastClickPosition = point
+        lastClickButton = button
+
+        postClick(button: button, clickState: Int64(consecutiveClickCount), flags: cgEventFlags(from: flags))
+    }
+
+    func mouseDown(button: String) {
+        let (mouseButton, downType, _) = mouseButtonEventTypes(for: button)
+        let event = CGEvent(mouseEventSource: CGEventSource(stateID: .hidSystemState), mouseType: downType, mouseCursorPosition: currentPosition, mouseButton: mouseButton)
+        event?.post(tap: .cghidEventTap)
+    }
+
+    func mouseUp(button: String) {
+        let (mouseButton, _, upType) = mouseButtonEventTypes(for: button)
+        let event = CGEvent(mouseEventSource: CGEventSource(stateID: .hidSystemState), mouseType: upType, mouseCursorPosition: currentPosition, mouseButton: mouseButton)
+        event?.post(tap: .cghidEventTap)
+    }
+
+    func dragMouse(dx: Double, dy: Double) {
+        let now = Date()
+        if now.timeIntervalSince(lastMoveTime) > 1 {
+            lastKnownPosition = CGEvent(source: nil)?.location ?? lastKnownPosition
+        }
+        let nextPoint = CGPoint(x: lastKnownPosition.x + dx, y: lastKnownPosition.y + dy)
+        let event = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDragged, mouseCursorPosition: nextPoint, mouseButton: .left)
+        event?.setIntegerValueField(.mouseEventDeltaX, value: Int64(dx.rounded()))
+        event?.setIntegerValueField(.mouseEventDeltaY, value: Int64(dy.rounded()))
+        event?.post(tap: .cghidEventTap)
+        lastKnownPosition = nextPoint
+        lastMoveTime = now
+    }
+
+    func pressKey(key: String) {
+        if let keyPress = keyPress(for: key) {
+            postKeyPress(keyPress)
+        } else {
+            typeText(string: key)
+        }
+    }
+
+    func typeText(string: String) {
+        guard !string.isEmpty else { return }
+
+        let lines = string.components(separatedBy: "\n")
+
+        for (index, line) in lines.enumerated() {
+            if !line.isEmpty {
+                let utf16 = Array(line.utf16)
+                let down = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: true)
+                let up = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false)
+                down?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+                up?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+                down?.post(tap: .cghidEventTap)
+                up?.post(tap: .cghidEventTap)
+            }
+
+            if index < lines.count - 1 {
+                postKeyPress(KeyPress(keyCode: 36, modifiers: .maskShift))
+            }
+        }
+    }
+
+    func performSystemAction(_ action: String, value: Double? = nil) {
+        switch action {
+        case "playPause":
+            postSystemKey(16)
+        case "nextTrack":
+            postSystemKey(17)
+        case "previousTrack":
+            postSystemKey(18)
+        case "volumeUp":
+            postSystemKey(0)
+        case "volumeDown":
+            postSystemKey(1)
+        case "mute":
+            postSystemKey(7)
+        case "missionControl":
+            postKey(keyCode: 160)
+        case "appWindows":
+            postKey(keyCode: 99, flags: .maskControl)
+        case "launchpad":
+            postKey(keyCode: 131)
+        case "minimize":
+            postKey(keyCode: 46, flags: .maskCommand)
+        case "fullscreen":
+            postKey(keyCode: 3, flags: [.maskCommand, .maskControl])
+        case "delete":
+            postKey(keyCode: 51, flags: .maskCommand)
+        case "setVolume":
+            if let value {
+                setVolume(to: value)
+            }
+		case "brightnessDown":
+			postKey(keyCode: 107)
+		case "brightnessUp":
+			postKey(keyCode: 113)
+		case "screenshot":
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            process.arguments = ["-a", "Screenshot"]
+            try? process.run()
+		case "siri":
+			launchApp("com.apple.Siri")
+        default:
+            break
+        }
+    }
+
+    func currentVolumePercentage() -> Double? {
+        guard let volume = systemVolume() else { return nil }
+        return Double(volume * 100)
+    }
+
+    func openTarget(_ target: String) {
+        let trimmed = target.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        
+        if looksLikeURL(trimmed) {
+            let urlString = trimmed.contains("://") ? trimmed : "http://" + trimmed
+            openURL(urlString)
+        } else {
+            launchApp(trimmed)
+        }
+    }
+
+    func launchApp(_ target: String) {
+        let trimmed = target.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        if trimmed.contains("."),
+           let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: trimmed) {
+            NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
+            return
+        }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = ["-a", trimmed]
+        try? process.run()
+    }
+
+    func openURL(_ target: String) {
+        let trimmed = target.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let url = URL(string: trimmed)
+        else { return }
+
+        NSWorkspace.shared.open(url)
+    }
+
+	func handleKbInput(_ key: String, flags: KbFlags?) {
+		let cgFlags = cgEventFlags(from: flags)
+
+		// ── F keys ──────────────────────────────────────────────────────────────
+		if let fKeyCode = fKeyCode(for: key) {
+			postKbKey(fKeyCode, flags: cgFlags)
+			return
+		}
+
+		// ── Named special keys ───────────────────────────────────────────────────
+		if let specialCode = kbSpecialKeyCode(for: key) {
+			postKbKey(specialCode, flags: cgFlags)
+			return
+		}
+
+		// ── Printable characters ─────────────────────────────────────────────────
+		// Single character — post via CGKeyCode if we have one, else typeText
+		if key.count == 1 {
+			if let code = alphaNumericKeyCode(for: key.lowercased()) {
+				postKbKey(code, flags: cgFlags)
+			} else {
+				// Symbol with no direct keycode — inject as unicode
+				// Flags intentionally not stamped — character already resolved client-side
+				let utf16 = Array(key.utf16)
+				let down = CGEvent(keyboardEventSource: kbEventSource, virtualKey: 0, keyDown: true)
+				let up   = CGEvent(keyboardEventSource: kbEventSource, virtualKey: 0, keyDown: false)
+				down?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+				up?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
+				down?.post(tap: keyboardTapLocation)
+				up?.post(tap: keyboardTapLocation)
+			}
+			return
+		}
+	}
+
+	// ── CGEventFlags from KbFlags ─────────────────────────────────────────────────
+
+	private func cgEventFlags(from flags: KbFlags?) -> CGEventFlags {
+		guard let flags else { return [] }
+		var result: CGEventFlags = []
+		if flags.shift == true { result.insert(.maskShift) }
+		if flags.ctrl  == true { result.insert(.maskControl) }
+		if flags.opt   == true { result.insert(.maskAlternate) }
+		if flags.cmd   == true { result.insert(.maskCommand) }
+		return result
+	}
+
+	// ── Post a kb key with flags ──────────────────────────────────────────────────
+
+    private func postKbKey(_ keyCode: CGKeyCode, flags: CGEventFlags) {
+        let tapLocation: CGEventTapLocation = (flags == .maskControl && isArrowKey(keyCode))
+            ? controlArrowTapLocation
+            : keyboardTapLocation
+
+        // post modifier keydowns if flags present
+        if !flags.isEmpty {
+            let modifierCodes = modifierKeyCodes(for: flags)
+            var accumulated: CGEventFlags = []
+            for code in modifierCodes {
+                accumulated.insert(self.flags(forPressedModifierKeyCode: code))
+                let modDown = CGEvent(keyboardEventSource: kbEventSource, virtualKey: code, keyDown: true)
+                modDown?.flags = accumulated
+                modDown?.post(tap: tapLocation)
+                usleep(1500)
+            }
+        }
+
+        let down = CGEvent(keyboardEventSource: kbEventSource, virtualKey: keyCode, keyDown: true)
+        let up   = CGEvent(keyboardEventSource: kbEventSource, virtualKey: keyCode, keyDown: false)
+        down?.flags = flags
+        up?.flags   = flags
+        down?.post(tap: tapLocation)
+        usleep(1500)
+        up?.post(tap: tapLocation)
+        usleep(1500)
+
+        // post modifier keyups in reverse
+        if !flags.isEmpty {
+            let modifierCodes = modifierKeyCodes(for: flags)
+            var accumulated = flags
+            for code in modifierCodes.reversed() {
+                accumulated.remove(self.flags(forPressedModifierKeyCode: code))
+                let modUp = CGEvent(keyboardEventSource: kbEventSource, virtualKey: code, keyDown: false)
+                modUp?.flags = accumulated
+                modUp?.post(tap: tapLocation)
+                usleep(1500)
+            }
+        }
+    }
+
+	// ── F key codes ───────────────────────────────────────────────────────────────
+
+	private func fKeyCode(for key: String) -> CGKeyCode? {
+		switch key {
+		case "f1":  return 122
+		case "f2":  return 120
+		case "f3":  return 99
+		case "f4":  return 118
+		case "f5":  return 96
+		case "f6":  return 97
+		case "f7":  return 98
+		case "f8":  return 100
+		case "f9":  return 101
+		case "f10": return 109
+		case "f11": return 103
+		case "f12": return 111
+		default:    return nil
+		}
+	}
+
+	// ── Special key codes (kb pipeline only) ─────────────────────────────────────
+
+	private func kbSpecialKeyCode(for key: String) -> CGKeyCode? {
+		switch key {
+		case "escape":              return 53
+		case "delete":              return 51
+		case "return", "enter":     return 36
+		case "tab":                 return 48
+		case "space":               return 49
+		case "up":                  return 126
+		case "down":                return 125
+		case "left":                return 123
+		case "right":               return 124
+		default:                    return nil
+		}
+	}
+
+    private func mouseButtonEventTypes(for button: String) -> (CGMouseButton, CGEventType, CGEventType) {
+        switch button {
+        case "right":  return (.right, .rightMouseDown, .rightMouseUp)
+        case "middle": return (.center, .otherMouseDown, .otherMouseUp)
+        default:       return (.left, .leftMouseDown, .leftMouseUp)
+        }
+    }
+
+    private func postClick(button: String, clickState: Int64, flags: CGEventFlags = []) {
+        let (mouseButton, downType, upType) = mouseButtonEventTypes(for: button)
+        let source = CGEventSource(stateID: .hidSystemState)
+        let point = currentPosition
+
+        if !flags.isEmpty {
+            let modifierCodes = modifierKeyCodes(for: flags)
+            var accumulated: CGEventFlags = []
+            for code in modifierCodes {
+                accumulated.insert(self.flags(forPressedModifierKeyCode: code))
+                let modDown = CGEvent(keyboardEventSource: kbEventSource, virtualKey: code, keyDown: true)
+                modDown?.flags = accumulated
+                modDown?.post(tap: keyboardTapLocation)
+                usleep(1500)
+            }
+        }
+
+        let down = CGEvent(mouseEventSource: source, mouseType: downType, mouseCursorPosition: point, mouseButton: mouseButton)
+        let up = CGEvent(mouseEventSource: source, mouseType: upType, mouseCursorPosition: point, mouseButton: mouseButton)
+        down?.setIntegerValueField(.mouseEventClickState, value: clickState)
+        up?.setIntegerValueField(.mouseEventClickState, value: clickState)
+        if !flags.isEmpty {
+            down?.flags = flags
+            up?.flags = flags
+        }
+        down?.post(tap: .cghidEventTap)
+        up?.post(tap: .cghidEventTap)
+
+        if !flags.isEmpty {
+            let modifierCodes = modifierKeyCodes(for: flags)
+            var accumulated = flags
+            for code in modifierCodes.reversed() {
+                accumulated.remove(self.flags(forPressedModifierKeyCode: code))
+                let modUp = CGEvent(keyboardEventSource: kbEventSource, virtualKey: code, keyDown: false)
+                modUp?.flags = accumulated
+                modUp?.post(tap: keyboardTapLocation)
+                usleep(1500)
+            }
+        }
+    }
+
+    private func postKey(keyCode: CGKeyCode, flags: CGEventFlags = [], tap: CGEventTapLocation? = nil) {
+        let postTap = tap ?? keyboardTapLocation
+        let down = CGEvent(keyboardEventSource: keyboardEventSource, virtualKey: keyCode, keyDown: true)
+        let up = CGEvent(keyboardEventSource: keyboardEventSource, virtualKey: keyCode, keyDown: false)
+        if !flags.isEmpty {
+            down?.flags = flags
+            up?.flags = flags
+        }
+        down?.post(tap: postTap)
+        up?.post(tap: postTap)
+    }
+
+    private func postSystemKey(_ key: Int32) {
+        postSystemKeyEvent(key, state: 0xA)
+        postSystemKeyEvent(key, state: 0xB)
+    }
+
+    private func postSystemKeyEvent(_ key: Int32, state: Int32) {
+        let data1 = Int((key << 16) | (state << 8))
+        let event = NSEvent.otherEvent(
+            with: .systemDefined,
+            location: .zero,
+            modifierFlags: NSEvent.ModifierFlags(rawValue: 0xA00),
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            subtype: 8,
+            data1: data1,
+            data2: -1
+        )
+        event?.cgEvent?.post(tap: .cghidEventTap)
+    }
+
+    private func setVolume(to value: Double) {
+        let scalar = Float(max(0, min(100, value)) / 100)
+        setSystemVolume(scalar)
+    }
+
+    private func toggleMute() {
+        guard let deviceID = defaultOutputDeviceID() else {
+            print("iControl: failed to find default output device for mute")
+            return
+        }
+        let isMuted = isSystemMuted(deviceID: deviceID) ?? false
+        setSystemMuted(!isMuted, deviceID: deviceID)
+    }
+
+    private func postKeyPress(_ keyPress: KeyPress) {
+        let modifierKeyCodes = modifierKeyCodes(for: keyPress.modifiers)
+        let tapLocation = tapLocation(for: keyPress)
+        var pressedFlags: CGEventFlags = []
+
+        for modifierKeyCode in modifierKeyCodes {
+            let modifierFlag = flags(forPressedModifierKeyCode: modifierKeyCode)
+            pressedFlags.insert(modifierFlag)
+            let modifierDown = CGEvent(keyboardEventSource: keyboardEventSource, virtualKey: modifierKeyCode, keyDown: true)
+            modifierDown?.flags = pressedFlags
+            modifierDown?.post(tap: tapLocation)
+            usleep(1500)
+        }
+
+        let down = CGEvent(keyboardEventSource: keyboardEventSource, virtualKey: keyPress.keyCode, keyDown: true)
+        let up = CGEvent(keyboardEventSource: keyboardEventSource, virtualKey: keyPress.keyCode, keyDown: false)
+        down?.flags = keyPress.modifiers
+        up?.flags = keyPress.modifiers
+        down?.post(tap: tapLocation)
+        usleep(1500)
+        up?.post(tap: tapLocation)
+        usleep(1500)
+
+        for modifierKeyCode in modifierKeyCodes.reversed() {
+            let modifierFlag = flags(forPressedModifierKeyCode: modifierKeyCode)
+            pressedFlags.remove(modifierFlag)
+            let modifierUp = CGEvent(keyboardEventSource: keyboardEventSource, virtualKey: modifierKeyCode, keyDown: false)
+            modifierUp?.flags = pressedFlags
+            modifierUp?.post(tap: tapLocation)
+            usleep(1500)
+        }
+    }
+
+    private func tapLocation(for keyPress: KeyPress) -> CGEventTapLocation {
+        if keyPress.modifiers == .maskControl, isArrowKey(keyPress.keyCode) {
+            return controlArrowTapLocation
+        }
+        return keyboardTapLocation
+    }
+
+    private func isArrowKey(_ keyCode: CGKeyCode) -> Bool {
+        (123...126).contains(keyCode)
+    }
+
+    private func keyPress(for key: String) -> KeyPress? {
+        let parts = key.lowercased().split(separator: "+").map(String.init)
+        guard let keyName = parts.last, let keyCode = keyCode(for: keyName) else { return nil }
+
+        var modifiers: CGEventFlags = []
+        for modifier in parts.dropLast() {
+            switch modifier {
+            case "cmd", "command":      modifiers.insert(.maskCommand)
+            case "shift":               modifiers.insert(.maskShift)
+            case "option", "opt", "alt":modifiers.insert(.maskAlternate)
+            case "ctrl", "control":     modifiers.insert(.maskControl)
+            default: break
+            }
+        }
+
+        return KeyPress(keyCode: keyCode, modifiers: modifiers)
+    }
+
+    private func defaultOutputDeviceID() -> AudioDeviceID? {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var deviceID = AudioDeviceID(0)
+        var dataSize = UInt32(MemoryLayout<AudioDeviceID>.size)
+
+        let status = AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address,
+            0,
+            nil,
+            &dataSize,
+            &deviceID
+        )
+
+        guard status == noErr else {
+            print("iControl: failed to get default output device: \(status)")
+            return nil
+        }
+
+        return deviceID
+    }
+
+    private func startObservingVolumeChanges() {
+        guard let deviceID = defaultOutputDeviceID() else {
+            print("iControl: failed to start volume observer")
+            return
+        }
+
+        observeVolumeProperty(deviceID: deviceID, element: kAudioObjectPropertyElementMain)
+        observeVolumeProperty(deviceID: deviceID, element: 1)
+        observeVolumeProperty(deviceID: deviceID, element: 2)
+    }
+
+    private func observeVolumeProperty(deviceID: AudioDeviceID, element: AudioObjectPropertyElement) {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyVolumeScalar,
+            mScope: kAudioDevicePropertyScopeOutput,
+            mElement: element
+        )
+
+        guard AudioObjectHasProperty(deviceID, &address) else { return }
+
+        let status = AudioObjectAddPropertyListenerBlock(deviceID, &address, volumeObserverQueue) { [weak self] _, _ in
+            guard let self, let volume = self.currentVolumePercentage() else { return }
+            DispatchQueue.main.async {
+                self.onVolumeChanged?(volume)
+            }
+        }
+
+        if status != noErr {
+            print("iControl: failed to observe volume changes: \(status)")
+        }
+    }
+
+    private func systemVolume() -> Float? {
+        guard let deviceID = defaultOutputDeviceID() else { return nil }
+
+        if let volume = volumeScalar(deviceID: deviceID, element: kAudioObjectPropertyElementMain) {
+            return volume
+        }
+
+        return volumeScalar(deviceID: deviceID, element: 1)
+            ?? volumeScalar(deviceID: deviceID, element: 2)
+    }
+
+    private func setSystemVolume(_ volume: Float) {
+        guard let deviceID = defaultOutputDeviceID() else {
+            print("iControl: failed to find default output device for volume")
+            return
+        }
+
+        let clamped = max(0, min(1, volume))
+        var didSet = false
+
+        if setVolumeScalar(clamped, deviceID: deviceID, element: kAudioObjectPropertyElementMain) {
+            didSet = true
+        } else {
+            let left = setVolumeScalar(clamped, deviceID: deviceID, element: 1)
+            let right = setVolumeScalar(clamped, deviceID: deviceID, element: 2)
+            didSet = left || right
+        }
+
+        if !didSet {
+            print("iControl: failed to set output volume")
+        }
+    }
+
+    private func volumeScalar(deviceID: AudioDeviceID, element: AudioObjectPropertyElement) -> Float? {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyVolumeScalar,
+            mScope: kAudioDevicePropertyScopeOutput,
+            mElement: element
+        )
+
+        guard AudioObjectHasProperty(deviceID, &address) else { return nil }
+
+        var volume = Float32(0)
+        var dataSize = UInt32(MemoryLayout<Float32>.size)
+        let status = AudioObjectGetPropertyData(deviceID, &address, 0, nil, &dataSize, &volume)
+        return status == noErr ? volume : nil
+    }
+
+    private func setVolumeScalar(_ volume: Float, deviceID: AudioDeviceID, element: AudioObjectPropertyElement) -> Bool {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyVolumeScalar,
+            mScope: kAudioDevicePropertyScopeOutput,
+            mElement: element
+        )
+
+        guard AudioObjectHasProperty(deviceID, &address) else { return false }
+
+        var isSettable: DarwinBoolean = false
+        let settableStatus = AudioObjectIsPropertySettable(deviceID, &address, &isSettable)
+        guard settableStatus == noErr, isSettable.boolValue else { return false }
+
+        var mutableVolume = Float32(volume)
+        let dataSize = UInt32(MemoryLayout<Float32>.size)
+        let status = AudioObjectSetPropertyData(deviceID, &address, 0, nil, dataSize, &mutableVolume)
+        return status == noErr
+    }
+
+    private let urlTLDs: Set<String> = [
+        // ── Generic ───────────────────────────────────────────────────────────
+        "com", "org", "net", "edu", "gov", "mil", "int",
+
+        // ── Tech & startup favourites ─────────────────────────────────────────
+        "io", "app", "dev", "ai", "co", "tech", "software",
+        "cloud", "host", "site", "web", "online", "digital",
+        "code", "api", "data",
+
+        // ── Media & content ───────────────────────────────────────────────────
+        "tv", "media", "news", "blog", "press", "pub",
+        "stream", "video", "music", "fm", "live",
+
+        // ── Commerce ──────────────────────────────────────────────────────────
+        "shop", "store", "market", "buy", "deal",
+
+        // ── Personal & portfolio ──────────────────────────────────────────────
+        "me", "name", "bio", "page", "link", "gg",
+
+        // ── Country codes — major ─────────────────────────────────────────────
+        "uk", "us", "ca", "au", "de", "fr", "jp", "cn",
+        "in", "br", "ru", "it", "es", "nl", "se", "no",
+        "dk", "fi", "pl", "pt", "mx", "ar", "kr", "sg",
+        "nz", "za", "ae", "sa", "il", "tr", "ch", "at",
+        "be", "cz", "hu", "ro", "gr", "th", "id", "ph",
+        "my", "vn", "pk", "bd", "ng", "ke", "gh",
+
+        // ── Country second-level common combos ────────────────────────────────
+        // (covers co.uk, com.au etc — the TLD extractor sees the last segment)
+        // Already handled since "uk" and "au" are in the list above
+
+        // ── Local network & self-hosted ───────────────────────────────────────
+        "local",       // mDNS — your-mac.local, raspberrypi.local
+        "internal",    // common corporate/home convention
+        "home",        // some routers use .home
+        "lan",         // common router default
+        "intranet",    // corporate
+        "corp",        // corporate
+        "private",     // some setups
+        "localdomain", // Linux default
+        "localhost",   // though this would never have a dot before it
+    ]
+
+    private func looksLikeURL(_ input: String) -> Bool {
+        if input.contains("://") { return true }
+        if input.hasPrefix("www.") { return true }
+
+        // ── IP address — with or without port ────────────────────────────────
+        let host = input.components(separatedBy: "/").first ?? input
+        let hostWithoutPort = host.components(separatedBy: ":").first ?? host
+        let parts = hostWithoutPort.components(separatedBy: ".")
+        if parts.count == 4 && parts.allSatisfy({ Int($0) != nil && Int($0)! <= 255 }) {
+            return true
+        }
+
+        // ── hostname:port — no dots, has colon with numeric port ─────────────
+        if !input.contains("."),
+          let colonIdx = input.firstIndex(of: ":"),
+          let port = Int(input[input.index(after: colonIdx)...].components(separatedBy: "/").first ?? "") {
+            return port > 0 && port <= 65535
+        }
+
+        // ── TLD check ─────────────────────────────────────────────────────────
+        if let dot = input.lastIndex(of: ".") {
+            let afterDot = String(input[input.index(after: dot)...])
+            let tld = afterDot.components(separatedBy: "/").first?
+                .components(separatedBy: ":").first?
+                .lowercased() ?? ""
+            return urlTLDs.contains(tld)
+        }
+
+        return false
+    }
+
+    private func isSystemMuted(deviceID: AudioDeviceID) -> Bool? {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyMute,
+            mScope: kAudioDevicePropertyScopeOutput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+
+        guard AudioObjectHasProperty(deviceID, &address) else { return nil }
+
+        var muted: UInt32 = 0
+        var dataSize = UInt32(MemoryLayout<UInt32>.size)
+        let status = AudioObjectGetPropertyData(deviceID, &address, 0, nil, &dataSize, &muted)
+        return status == noErr ? muted != 0 : nil
+    }
+
+    private func setSystemMuted(_ muted: Bool, deviceID: AudioDeviceID) {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyMute,
+            mScope: kAudioDevicePropertyScopeOutput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+
+        guard AudioObjectHasProperty(deviceID, &address) else {
+            print("iControl: output device does not expose mute")
+            return
+        }
+
+        var isSettable: DarwinBoolean = false
+        let settableStatus = AudioObjectIsPropertySettable(deviceID, &address, &isSettable)
+        guard settableStatus == noErr, isSettable.boolValue else {
+            print("iControl: mute is not settable on output device")
+            return
+        }
+
+        var mutableMuted: UInt32 = muted ? 1 : 0
+        let dataSize = UInt32(MemoryLayout<UInt32>.size)
+        let status = AudioObjectSetPropertyData(deviceID, &address, 0, nil, dataSize, &mutableMuted)
+        if status != noErr {
+            print("iControl: failed to set mute: \(status)")
+        }
+    }
+
+    private func modifierKeyCodes(for flags: CGEventFlags) -> [CGKeyCode] {
+        var keyCodes: [CGKeyCode] = []
+        if flags.contains(.maskCommand)  { keyCodes.append(55) }
+        if flags.contains(.maskShift)    { keyCodes.append(56) }
+        if flags.contains(.maskAlternate){ keyCodes.append(58) }
+        if flags.contains(.maskControl)  { keyCodes.append(59) }
+        return keyCodes
+    }
+
+    private func flags(forPressedModifierKeyCode keyCode: CGKeyCode) -> CGEventFlags {
+        switch keyCode {
+        case 55: return .maskCommand
+        case 56: return .maskShift
+        case 58: return .maskAlternate
+        case 59: return .maskControl
+        default: return []
+        }
+    }
+
+    private func keyCode(for key: String) -> CGKeyCode? {
+        switch key {
+        case "space":               return 49
+        case "right", "forward":   return 124
+        case "left", "back":       return 123
+        case "up":                  return 126
+        case "down":                return 125
+        case "return", "enter":     return 36
+        case "escape":              return 53
+        case "tab":                 return 48
+        case "backspace", "delete": return 51
+        default:                    return alphaNumericKeyCode(for: key)
+        }
+    }
+
+    private func alphaNumericKeyCode(for key: String) -> CGKeyCode? {
+        let keyCodes: [String: CGKeyCode] = [
+            "a": 0,  "s": 1,  "d": 2,  "f": 3,  "h": 4,
+            "g": 5,  "z": 6,  "x": 7,  "c": 8,  "v": 9,
+            "b": 11, "q": 12, "w": 13, "e": 14, "r": 15,
+            "y": 16, "t": 17, "1": 18, "2": 19, "3": 20,
+            "4": 21, "6": 22, "5": 23, "=": 24, "9": 25,
+            "7": 26, "-": 27, "8": 28, "0": 29, "]": 30,
+            "o": 31, "u": 32, "[": 33, "i": 34, "p": 35,
+            "l": 37, "j": 38, "'": 39, "k": 40, ";": 41,
+            "\\": 42, ",": 43, "/": 44, "n": 45, "m": 46, ".": 47
+        ]
+        return keyCodes[key]
+    }
+}
+
+private struct KeyPress {
+    let keyCode: CGKeyCode
+    let modifiers: CGEventFlags
+}
+
+§ iControl/Resources/index.html
 <!doctype html>
 <html lang="en">
   <head>
@@ -207,12 +1409,13 @@
         align-items: stretch;
       }
 
-      @container (max-block-size: 480px) {
+      @container (max-block-size: 82px) {
         #touchpad-wrapper:not(:has(~ .keyboard.mini)) #touchpad {
+          flex: 0;
           margin-block-end: 0;
         }
         #touchpad-wrapper:not(:has(~ .keyboard.mini)) #touchpad-buttons {
-          display: none;
+          flex: 1;
         }
       }
       @container (max-block-size: 340px) {
@@ -422,9 +1625,7 @@
         border-inline-end: 1px solid var(--color-border);
         z-index: 101;
         transform: translateX(-100%);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
+        overflow-block: auto;
         padding: var(--padding);
       }
       body.vertical-rl #settings-drawer {
@@ -434,142 +1635,52 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        flex-shrink: 0;
-        text-transform: uppercase;
-        letter-spacing: 0.1rem;
-
-      }
-      #drawer-title {
-        margin-block: 0.5rem;
-      }
-      #drawer-content {
-        flex: 1;
-        min-block-size: 0;
-        overflow-y: auto;
-        overflow-x: hidden;
-        overscroll-behavior: contain;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-        padding-block-end: calc(var(--padding) + env(safe-area-inset-bottom, 0px));
-        margin-block-start: 1.2rem;
-      }
-      #drawer-content::-webkit-scrollbar {
-        display: none;
       }
       #drawer-close {
-        inline-size: 18px;
+        inline-size: 36px;
+        block-size: 36px;
+        border-radius: 50%;
         flex-shrink: 0;
-        font-size: 2rem;
-        background-color: transparent;
-        padding: 0;
-        margin: 0;
       }
       .drawer-section {
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
       }
-      .drawer-sensitivity {
-        margin-block-end: 1.5rem;
-      }
-      .drawer-sensitivity-label {
+      .drawer-label {
         display: flex;
         justify-content: space-between;
         font-size: 0.8rem;
         color: var(--color-text-muted);
+        margin-block-start: 0.5rem;
         letter-spacing: 0.08em;
+        text-transform: uppercase;
         line-height: 1.2rem;
+        margin-block-start: 24px;
+        margin-block-end: 12px;
       }
-      .drawer-toggle {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        padding: 0.85rem 0;
-        border-block-start: 1px solid rgba(71, 85, 105, 0.18);
-      }
-      .drawer-toggle-text {
-        display: flex;
-        flex-direction: column;
-        gap: 0.2rem;
-      }
-      .drawer-item-title {
-        font-size: 0.95rem;
+      .drawer-value {
+        font-variant-numeric: tabular-nums;
         color: var(--color-text);
-      }
-      .drawer-item-subtitle {
-        font-size: 0.75rem;
-        color: var(--color-text-muted);
-      }
-      .drawer-switch {
-        position: relative;
-        inline-size: 52px;
-        block-size: 32px;
-        flex-shrink: 0;
-      }
-      .drawer-switch input {
-        position: absolute;
-        opacity: 0;
-        inset: 0;
-        margin: 0;
-        padding: 0;
-        border: none;
-        background: transparent;
-        cursor: pointer;
-      }
-      .drawer-switch-track {
-        position: absolute;
-        inset: 0;
-        border-radius: 999px;
-        background: rgba(71, 85, 105, 0.45);
-        transition:
-          background 0.2s ease,
-          transform 0.2s ease;
-      }
-      .drawer-switch-track::after {
-        content: "";
-        position: absolute;
-        inset-block-start: 3px;
-        inset-inline-start: 3px;
-        inline-size: 26px;
-        block-size: 26px;
-        border-radius: 50%;
-        background: var(--color-text);
-        transition: transform 0.2s ease;
-      }
-      .drawer-switch input:checked + .drawer-switch-track {
-        background: var(--color-button-active);
-      }
-      .drawer-switch input:checked + .drawer-switch-track::after {
-        transform: translateX(20px);
-      }
-      .drawer-version {
-        margin-block-start: 1.5rem;
-        font-size: 0.8rem;
-        color: var(--color-text-muted);
-        text-align: center;
-        letter-spacing: 0.06em;
       }
       input[type="range"] {
         -webkit-appearance: none;
         appearance: none;
         inline-size: 100%;
-        block-size: 8px;
-        border-radius: 4px;
+        block-size: 4px;
+        border-radius: 2px;
         background: var(--color-button-active);
         outline: none;
         cursor: pointer;
         border: none;
         padding: 0;
-        margin: 0;
       }
       input[type="range"]::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
-        inline-size: 28px;
+        inline-size: 20px;
         block-size: 20px;
-        border-radius: 10px;
+        border-radius: 50%;
         background: var(--color-text);
         cursor: pointer;
       }
@@ -2144,97 +3255,29 @@
     <div id="drawer-overlay" class="hidden"></div>
     <aside id="settings-drawer">
       <div id="drawer-header">
-        <h4 id="drawer-title">Settings</h4>
+        <h1 id="drawer-title">Settings</h1>
         <button id="drawer-close">
-          ×
+          <svg style="inline-size: 20px; block-size: 20px">
+            <use href="#icon-close"></use>
+          </svg>
         </button>
       </div>
-      <div id="drawer-content">
-        <div class="drawer-section">
-          <span class="drawer-item-title">Sensitivity</span>
-          <div class="drawer-sensitivity">
-            <label class="drawer-sensitivity-label" for="sensitivity-touchpad">
-              <span class="drawer-item-subtitle">Trackpad</span>
-              <span class="drawer-item-subtitle" id="val-touchpad">1x</span>
-            </label>
-            <input type="range" id="sensitivity-touchpad" min="0.25" max="4" step="0.25" value="1" />
-          </div>
-          <div class="drawer-sensitivity">
-            <label class="drawer-sensitivity-label" for="sensitivity-scroll">
-              <span class="drawer-item-subtitle">Scroll</span>
-              <span class="drawer-item-subtitle" id="val-scroll">1x</span>
-            </label>
-            <input type="range" id="sensitivity-scroll" min="0.25" max="4" step="0.25" value="1" />
-          </div>
-          <div class="drawer-sensitivity">
-            <label class="drawer-sensitivity-label" for="sensitivity-cursorpad">
-              <span class="drawer-item-subtitle">Cursorpad</span>
-              <span class="drawer-item-subtitle" id="val-cursorpad">1x</span>
-            </label>
-            <input type="range" id="sensitivity-cursorpad" min="0.25" max="4" step="0.25" value="1" />
-          </div>
-          <label class="drawer-toggle" for="toggle-trackpad-buttons">
-            <span class="drawer-toggle-text">
-              <span class="drawer-item-title">Trackpad Buttons</span>
-              <span class="drawer-item-subtitle">Show left, middle and right click buttons</span>
-            </span>
-            <span class="drawer-switch">
-              <input type="checkbox" id="toggle-trackpad-buttons" />
-              <span class="drawer-switch-track"></span>
-            </span>
-          </label>
-          <label class="drawer-toggle" for="toggle-middle-click">
-            <span class="drawer-toggle-text">
-              <span class="drawer-item-title">Middle Click Button</span>
-              <span class="drawer-item-subtitle">Show middle button in the trackpad</span>
-            </span>
-            <span class="drawer-switch">
-              <input type="checkbox" id="toggle-middle-click" />
-              <span class="drawer-switch-track"></span>
-            </span>
-          </label>
-          <label class="drawer-toggle" for="toggle-horizontal-scroll">
-            <span class="drawer-toggle-text">
-              <span class="drawer-item-title">Reverse Horizontal Scroll</span>
-              <span class="drawer-item-subtitle">Invert left and right scrolling</span>
-            </span>
-            <span class="drawer-switch">
-              <input type="checkbox" id="toggle-horizontal-scroll" />
-              <span class="drawer-switch-track"></span>
-            </span>
-          </label>
-          <label class="drawer-toggle" for="toggle-vertical-scroll">
-            <span class="drawer-toggle-text">
-              <span class="drawer-item-title">Reverse Vertical Scroll</span>
-              <span class="drawer-item-subtitle">Invert up and down scrolling</span>
-            </span>
-            <span class="drawer-switch">
-              <input type="checkbox" id="toggle-vertical-scroll" />
-              <span class="drawer-switch-track"></span>
-            </span>
-          </label>
-          <label class="drawer-toggle" for="toggle-vibration-feedback">
-            <span class="drawer-toggle-text">
-              <span class="drawer-item-title">Vibration</span>
-              <span class="drawer-item-subtitle">Use haptics when sending commands</span>
-            </span>
-            <span class="drawer-switch">
-              <input type="checkbox" id="toggle-vibration-feedback" />
-              <span class="drawer-switch-track"></span>
-            </span>
-          </label>
-          <label class="drawer-toggle" for="toggle-sound-feedback">
-            <span class="drawer-toggle-text">
-              <span class="drawer-item-title">Sound</span>
-              <span class="drawer-item-subtitle">Play a short click for actions</span>
-            </span>
-            <span class="drawer-switch">
-              <input type="checkbox" id="toggle-sound-feedback" />
-              <span class="drawer-switch-track"></span>
-            </span>
-          </label>
-        </div>
-        <p class="drawer-version" id="drawer-version"></p>
+      <div class="drawer-section">
+        <label class="drawer-label" for="sensitivity-touchpad">
+          <span>Touchpad</span>
+          <span class="drawer-value" id="val-touchpad">1x</span>
+        </label>
+        <input type="range" id="sensitivity-touchpad" min="0.25" max="4" step="0.25" value="1" />
+        <label class="drawer-label" for="sensitivity-scroll">
+          <span>Scroll</span>
+          <span class="drawer-value" id="val-scroll">1x</span>
+        </label>
+        <input type="range" id="sensitivity-scroll" min="0.25" max="4" step="0.25" value="1" />
+        <label class="drawer-label" for="sensitivity-cursorpad">
+          <span>Cursorpad</span>
+          <span class="drawer-value" id="val-cursorpad">1x</span>
+        </label>
+        <input type="range" id="sensitivity-cursorpad" min="0.25" max="4" step="0.25" value="1" />
       </div>
     </aside>
     <div id="auth-modal" class="hidden">
@@ -2259,6 +3302,7 @@
       </div>
     </div>
     <script>
+      const ICONTROL_HMAC_KEY = "ICONTROL_HMAC_KEY";
       window.addEventListener("contextmenu", (e) => e.preventDefault());
       /* ── Auth: strip token from URL and store in localStorage ── */
       (function () {
@@ -2318,48 +3362,27 @@
       const hideAuthModal = () => {
         document.getElementById("auth-modal").classList.add("hidden");
       };
-      const readBooleanSetting = (key, fallback = true) => {
-        const stored = localStorage.getItem(key);
-        if (stored === null) return fallback;
-        return stored === "1";
-      };
-      let audioCtx;
-      const getAudioContext = () => {
-        if (audioCtx) return audioCtx;
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) return null;
-        audioCtx = new AudioContextClass();
-        return audioCtx;
-      };
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
       const inputFeedback = () => {
-        if (vibrationFeedbackEnabled) {
-          navigator?.vibrate?.(15);
-        }
-
-        if (!soundFeedbackEnabled) return;
-
-        const context = getAudioContext();
-        if (!context) return;
-        if (context.state === "suspended") context.resume();
-        const now = context.currentTime;
-        const osc = context.createOscillator();
+        navigator?.vibrate?.(15);
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
         osc.type = "sine";
         osc.frequency.setValueAtTime(600, now);
-        const gain = context.createGain();
+        const gain = audioCtx.createGain();
         gain.gain.setValueAtTime(0.0001, now);
         gain.gain.exponentialRampToValueAtTime(0.2, now + 0.001);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
         osc.connect(gain);
-        gain.connect(context.destination);
+        gain.connect(audioCtx.destination);
         osc.start(now);
         osc.stop(now + 0.01);
       };
 
       const resumeAudio = () => {
-        if (!soundFeedbackEnabled) return;
-        const context = getAudioContext();
-        if (context?.state === "suspended") context.resume();
+        if (audioCtx.state === "suspended") audioCtx.resume();
       };
 
       document.addEventListener("touchstart", resumeAudio, { passive: true });
@@ -2379,12 +3402,6 @@
       let touchpadSensitivity = parseFloat(localStorage.getItem("sens-touchpad") ?? "1");
       let scrollSensitivity = parseFloat(localStorage.getItem("sens-scroll") ?? "1");
       let cursorpadSensitivity = parseFloat(localStorage.getItem("sens-cursorpad") ?? "1");
-      let vibrationFeedbackEnabled = readBooleanSetting("feedback-vibration", true);
-      let soundFeedbackEnabled = readBooleanSetting("feedback-sound", true);
-      let reverseHorizontalScroll = readBooleanSetting("scroll-reverse-horizontal", false);
-      let reverseVerticalScroll = readBooleanSetting("scroll-reverse-vertical", false);
-      let middleClickEnabled = readBooleanSetting("mouse-middle-click", true);
-      let trackpadButtonsEnabled = readBooleanSetting("trackpad-buttons", true);
 
       /* ====================================
        * Connection handling
@@ -2394,6 +3411,105 @@
       let reconnectAttempts = 0;
       let lastSentToken = "";
       const MAX_RECONNECT = 5;
+      const encoder = new TextEncoder();
+      let hmacSigningKeyPromise = null;
+
+      const toBase64 = (arrayBuffer) => {
+        let binary = "";
+        const bytes = new Uint8Array(arrayBuffer);
+        const chunkSize = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          const chunk = bytes.subarray(i, i + chunkSize);
+          binary += String.fromCharCode(...chunk);
+        }
+        return btoa(binary);
+      };
+
+      /* ====================================
+       * Pure JS HMAC-SHA256
+       * No Web Crypto API — works on HTTP
+       * ==================================== */
+      const HMAC = (() => {
+        const K = [
+          0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+          0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+          0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+          0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+          0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+          0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+        ];
+
+        const H0 = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+
+        const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+        const add = (...args) => args.reduce((a, b) => (a + b) >>> 0);
+
+        const sha256 = (msgBytes) => {
+          const msg = Array.from(msgBytes);
+          const bitLen = msg.length * 8;
+          msg.push(0x80);
+          while (msg.length % 64 !== 56) msg.push(0);
+          for (let i = 7; i >= 0; i--) msg.push((bitLen / Math.pow(2, i * 8)) & 0xff);
+
+          let [a0, b0, c0, d0, e0, f0, g0, h0] = H0;
+
+          for (let i = 0; i < msg.length; i += 64) {
+            const w = [];
+            for (let j = 0; j < 16; j++) {
+              w[j] = (msg[i + j * 4] << 24) | (msg[i + j * 4 + 1] << 16) | (msg[i + j * 4 + 2] << 8) | msg[i + j * 4 + 3];
+            }
+            for (let j = 16; j < 64; j++) {
+              const s0 = rotr(w[j - 15], 7) ^ rotr(w[j - 15], 18) ^ (w[j - 15] >>> 3);
+              const s1 = rotr(w[j - 2], 17) ^ rotr(w[j - 2], 19) ^ (w[j - 2] >>> 10);
+              w[j] = add(w[j - 16], s0, w[j - 7], s1);
+            }
+
+            let [a, b, c, d, e, f, g, h] = [a0, b0, c0, d0, e0, f0, g0, h0];
+
+            for (let j = 0; j < 64; j++) {
+              const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+              const ch = (e & f) ^ (~e & g);
+              const t1 = add(h, S1, ch, K[j], w[j]);
+              const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+              const maj = (a & b) ^ (a & c) ^ (b & c);
+              const t2 = add(S0, maj);
+              [h, g, f, e, d, c, b, a] = [g, f, e, add(d, t1), c, b, a, add(t1, t2)];
+            }
+
+            [a0, b0, c0, d0, e0, f0, g0, h0] = [add(a0, a), add(b0, b), add(c0, c), add(d0, d), add(e0, e), add(f0, f), add(g0, g), add(h0, h)];
+          }
+
+          return [a0, b0, c0, d0, e0, f0, g0, h0].flatMap((x) => [(x >>> 24) & 0xff, (x >>> 16) & 0xff, (x >>> 8) & 0xff, x & 0xff]);
+        };
+
+        const strToBytes = (str) => Array.from(new TextEncoder().encode(str));
+
+        const sign = (message, key) => {
+          const keyBytes = strToBytes(key);
+          const blockSize = 64;
+
+          let k = keyBytes.length > blockSize ? sha256(keyBytes) : keyBytes;
+          while (k.length < blockSize) k.push(0);
+
+          const ipad = k.map((b) => b ^ 0x36);
+          const opad = k.map((b) => b ^ 0x5c);
+
+          const msgBytes = strToBytes(message);
+          const inner = sha256([...ipad, ...msgBytes]);
+          const outer = sha256([...opad, ...inner]);
+
+          return btoa(String.fromCharCode(...outer));
+        };
+
+        return { sign };
+      })();
+
+      const buildSignedFrame = (payload) => {
+          const payloadJSON = JSON.stringify(payload);
+          const signature = HMAC.sign(payloadJSON, ICONTROL_HMAC_KEY);
+          return JSON.stringify({ p: payload, s: signature });
+      };
+
       const isDenied = () => sessionStorage.getItem("icontrol-denied") === "1";
       const connectWebSocket = () => {
         if (isDenied()) return Promise.resolve();
@@ -2408,7 +3524,7 @@
             resolve();
             const token = sessionStorage.getItem("icontrol-session") || localStorage.getItem("icontrol-token") || "";
             lastSentToken = token;
-            socket.send(JSON.stringify({ type: "auth", token, device: getDeviceName() }));
+            send({ type: "auth", token, device: getDeviceName() });
           });
 
           socket.addEventListener("close", () => {
@@ -2462,6 +3578,8 @@
               sessionStorage.removeItem("icontrol-session");
               localStorage.removeItem("icontrol-token");
               hideAuthModal();
+            } else if (payload.type === "key:expired") {
+              window.location.reload();
             }
           });
         });
@@ -2481,7 +3599,8 @@
         console.log("Sending command:", payload);
         const sendAction = () => {
           if (!["move", "dragMove", "scroll"].includes(payload.type)) inputFeedback();
-          socket.send(JSON.stringify(payload));
+          const frame = buildSignedFrame(payload);
+          socket.send(frame);
         };
         if (socket?.readyState === WebSocket.OPEN) {
           try {
@@ -2494,12 +3613,6 @@
         } else {
           connectWebSocket().then(sendAction);
         }
-      };
-
-      const sendScroll = ({ dx = 0, dy = 0 }) => {
-        const adjustedDx = dx * scrollSensitivity * (reverseHorizontalScroll ? -1 : 1);
-        const adjustedDy = dy * scrollSensitivity * (reverseVerticalScroll ? -1 : 1);
-        send({ type: "scroll", dx: adjustedDx, dy: adjustedDy });
       };
 
       /* ====================================
@@ -3036,7 +4149,7 @@
               send({ type: "move", dx: dx * touchpadSensitivity, dy: dy * touchpadSensitivity });
               break;
             case "twoFingerMove":
-              sendScroll({ dx, dy });
+              send({ type: "scroll", dx: dx * scrollSensitivity, dy: dy * scrollSensitivity });
               break;
             case "tap": {
               const f = getActiveFlags();
@@ -3083,7 +4196,7 @@
           const angle = Math.atan2(dy, dx) * (180 / Math.PI);
           const isCardinal = Math.abs(angle) < 22.5 || Math.abs(angle - 90) < 22.5 || Math.abs(angle + 90) < 22.5 || Math.abs(Math.abs(angle) - 180) < 22.5;
           if (!isCardinal) return;
-          sendScroll({ dx, dy });
+          send({ type: "scroll", dx: dx * scrollSensitivity, dy: dy * scrollSensitivity });
         },
       );
 
@@ -3282,7 +4395,6 @@
               break;
             case "caps":
               kb.caps = !kb.caps;
-              console.log(kb);
               break;
             case "fn":
               kb.fn = !kb.fn;
@@ -3415,99 +4527,6 @@
         });
       });
 
-      const touchpadButtonsEl = document.getElementById("touchpad-buttons");
-
-      const toggleSettings = [
-        {
-          id: "toggle-trackpad-buttons",
-          key: "trackpad-buttons",
-          get: () => trackpadButtonsEnabled,
-          set: (value) => {
-            trackpadButtonsEnabled = value;
-            if (value) {
-              touchpadButtonsEl.classList.remove("hidden");
-              middleClickEnabled = true;
-              middleClickEl.classList.remove("hidden");
-              localStorage.setItem("mouse-middle-click", "1");
-              document.getElementById("toggle-middle-click").checked = true;
-            } else {
-              touchpadButtonsEl.classList.add("hidden");
-              middleClickEnabled = false;
-              middleClickEl.classList.add("hidden");
-              localStorage.setItem("mouse-middle-click", "0");
-              document.getElementById("toggle-middle-click").checked = false;
-            }
-          },
-        },
-        {
-          id: "toggle-middle-click",
-          key: "mouse-middle-click",
-          get: () => middleClickEnabled,
-          set: (value) => {
-            middleClickEnabled = value;
-            value
-              ? middleClickEl.classList.remove("hidden")
-              : middleClickEl.classList.add("hidden")
-          },
-        },
-        {
-          id: "toggle-horizontal-scroll",
-          key: "scroll-reverse-horizontal",
-          get: () => reverseHorizontalScroll,
-          set: (value) => {
-            reverseHorizontalScroll = value;
-          },
-        },
-        {
-          id: "toggle-vertical-scroll",
-          key: "scroll-reverse-vertical",
-          get: () => reverseVerticalScroll,
-          set: (value) => {
-            reverseVerticalScroll = value;
-          },
-        },
-        {
-          id: "toggle-vibration-feedback",
-          key: "feedback-vibration",
-          get: () => vibrationFeedbackEnabled,
-          set: (value) => {
-            vibrationFeedbackEnabled = value;
-          },
-        },
-        {
-          id: "toggle-sound-feedback",
-          key: "feedback-sound",
-          get: () => soundFeedbackEnabled,
-          set: (value) => {
-            soundFeedbackEnabled = value;
-            if (value) {
-              resumeAudio();
-            }
-          },
-        },
-      ];
-
-      toggleSettings.forEach(({ id, key, get, set }) => {
-        const input = document.getElementById(id);
-        input.checked = get();
-        input.addEventListener("change", () => {
-          const value = input.checked;
-          set(value);
-          localStorage.setItem(key, value ? "1" : "0");
-        });
-      });
-
-      if (!trackpadButtonsEnabled) {
-        touchpadButtonsEl.classList.add("hidden");
-        middleClickEl.classList.add("hidden");
-      } else if (!middleClickEnabled) {
-        middleClickEl.classList.add("hidden");
-      }
-
-      const versionMetaContent = document.querySelector('meta[name="version"]')?.content?.trim();
-      const drawerVersion = document.getElementById("drawer-version");
-      drawerVersion.textContent = versionMetaContent ? `v${versionMetaContent}` : "";
-
       /* ── OTP digit box behaviour ── */
       (function () {
         const digits = Array.from(document.querySelectorAll("#auth-token-input .otp-digit"));
@@ -3594,3 +4613,1004 @@
     </script>
   </body>
 </html>
+
+§ iControl/Server/HTTPServer.swift
+import Foundation
+import Network
+import CryptoKit
+import SystemConfiguration
+
+final class HTTPServer {
+    private static let hmacKeyLength = 32
+    private static let versionSuffixLength = 10
+    private static let randomChars = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+    private let port: UInt16
+    private let inputController: InputController
+    private let authContext: AuthContext
+    private let hmacKey: String
+    private let sessionVersionSuffix: String
+    private let queue = DispatchQueue(label: "iControl.HTTPServer")
+    private var listener: NWListener?
+    private var clients: [ObjectIdentifier: ClientConnection] = [:]
+    private var webSockets: [ObjectIdentifier: WebSocketServer] = [:]
+
+    init(port: UInt16, inputController: InputController, authContext: AuthContext) {
+        self.port = port
+        self.inputController = inputController
+        self.authContext = authContext
+        self.hmacKey = Self.randomAlphanumeric(length: Self.hmacKeyLength)
+        self.sessionVersionSuffix = Self.randomAlphanumeric(length: Self.versionSuffixLength)
+        self.inputController.onVolumeChanged = { [weak self] volume in
+            self?.broadcastVolume(volume)
+        }
+    }
+
+    func start() {
+        guard listener == nil else {
+            print("iControl: server already running on port \(port)")
+            return
+        }
+
+        guard let listenerPort = NWEndpoint.Port(rawValue: port) else {
+            print("iControl: invalid port \(port)")
+            return
+        }
+
+        do {
+            let listener = try NWListener(using: .tcp, on: listenerPort)
+            listener.stateUpdateHandler = { [weak self] state in
+                self?.handleListenerState(state)
+            }
+            listener.newConnectionHandler = { [weak self] connection in
+                self?.accept(connection)
+            }
+            self.listener = listener
+            print("iControl: starting HTTP server on port \(port)")
+            listener.start(queue: queue)
+        } catch {
+            print("iControl: failed to start server on port \(port): \(error)")
+        }
+    }
+
+    private func handleListenerState(_ state: NWListener.State) {
+        switch state {
+        case .ready:
+            if let endpoint = listener?.port {
+                print("iControl: server listening on 0.0.0.0:\(endpoint.rawValue)")
+            } else {
+                print("iControl: server listener ready")
+            }
+        case .failed(let error):
+            print("iControl: listener failed: \(error)")
+        case .cancelled:
+            print("iControl: listener cancelled")
+        default:
+            break
+        }
+    }
+
+    private func accept(_ connection: NWConnection) {
+        let identifier = ObjectIdentifier(connection)
+        let client = ClientConnection(connection: connection)
+        clients[identifier] = client
+
+        print("iControl: client connected")
+
+        connection.stateUpdateHandler = { [weak self] state in
+            self?.handleConnectionState(state, id: identifier)
+        }
+
+        connection.start(queue: queue)
+        receiveRequest(for: identifier)
+    }
+
+    private func handleConnectionState(_ state: NWConnection.State, id: ObjectIdentifier) {
+        switch state {
+        case .failed(let error):
+            print("iControl: client connection failed: \(error)")
+            removeConnection(id: id)
+        case .cancelled:
+            removeConnection(id: id)
+        default:
+            break
+        }
+    }
+
+    private func receiveRequest(for id: ObjectIdentifier) {
+        guard let client = clients[id] else { return }
+
+        client.connection.receive(minimumIncompleteLength: 1, maximumLength: 4096) { [weak self] data, _, isComplete, error in
+            guard let self else { return }
+
+            if let error {
+                print("iControl: receive error: \(error)")
+                self.removeConnection(id: id)
+                return
+            }
+
+            if let data, !data.isEmpty {
+                client.buffer.append(data)
+            }
+
+            if client.buffer.range(of: Data("\r\n\r\n".utf8)) != nil {
+                self.handleRequest(client.buffer, for: id)
+                return
+            }
+
+            if isComplete {
+                self.handleRequest(client.buffer, for: id)
+                return
+            }
+
+            self.receiveRequest(for: id)
+        }
+    }
+
+    private func handleRequest(_ data: Data, for id: ObjectIdentifier) {
+        guard let client = clients[id] else { return }
+
+        guard let request = String(data: data, encoding: .utf8) else {
+            print("iControl: invalid request data")
+            send(status: "400 Bad Request", body: "Bad Request", contentType: "text/plain", to: client.connection, closeAfterSend: true)
+            return
+        }
+
+        let lines = request.components(separatedBy: "\r\n")
+        guard let requestLine = lines.first, !requestLine.isEmpty else {
+            print("iControl: missing request line")
+            send(status: "400 Bad Request", body: "Bad Request", contentType: "text/plain", to: client.connection, closeAfterSend: true)
+            return
+        }
+
+        print("iControl: HTTP request received: \(requestLine)")
+
+        let parts = requestLine.split(separator: " ")
+        guard parts.count >= 2 else {
+            send(status: "400 Bad Request", body: "Bad Request", contentType: "text/plain", to: client.connection, closeAfterSend: true)
+            return
+        }
+
+        let method = String(parts[0])
+        let rawPath = String(parts[1])
+        let headers = parseHeaders(lines.dropFirst())
+
+        if headers["upgrade"]?.lowercased() == "websocket" {
+            print("iControl: WebSocket upgrade attempt")
+            upgradeToWebSocket(headers: headers, connectionID: id)
+            return
+        }
+
+        guard method == "GET" else {
+            send(status: "404 Not Found", body: "Not Found", contentType: "text/plain", to: client.connection, closeAfterSend: true)
+            return
+        }
+
+        let path = rawPath.components(separatedBy: "?").first ?? rawPath
+        let filePath = (path == "/") ? "/index.html" : path
+
+        guard !filePath.contains("..") else {
+            send(status: "403 Forbidden", body: "Forbidden", contentType: "text/plain", to: client.connection, closeAfterSend: true)
+            return
+        }
+
+        let relativePath = String(filePath.dropFirst())
+        let url = URL(fileURLWithPath: relativePath)
+        let fileName = url.deletingPathExtension().path
+        let fileExtension = url.pathExtension
+
+        guard let resourceURL = Bundle.main.url(forResource: fileName, withExtension: fileExtension.isEmpty ? nil : fileExtension),
+              let fileData = try? Data(contentsOf: resourceURL) else {
+            print("iControl: resource not found: \(relativePath)")
+            send(status: "404 Not Found", body: "Not Found", contentType: "text/plain", to: client.connection, closeAfterSend: true)
+            return
+        }
+
+        let responseData: Data
+        if relativePath == "index.html" {
+            responseData = prepareIndexHTML(data: fileData) ?? fileData
+        } else {
+            responseData = fileData
+        }
+
+        let contentType = mimeType(for: fileExtension)
+        print("iControl: serving \(relativePath) (\(contentType))")
+        send(status: "200 OK", data: responseData, contentType: contentType, to: client.connection, closeAfterSend: true)
+    }
+
+    private func mimeType(for extension: String) -> String {
+        switch `extension`.lowercased() {
+        case "html":        return "text/html; charset=utf-8"
+        case "css":         return "text/css; charset=utf-8"
+        case "js":          return "application/javascript; charset=utf-8"
+        case "json":        return "application/json"
+        case "png":         return "image/png"
+        case "jpg", "jpeg": return "image/jpeg"
+        case "svg":         return "image/svg+xml"
+        case "ico":         return "image/x-icon"
+        case "webp":        return "image/webp"
+        case "woff":        return "font/woff"
+        case "woff2":       return "font/woff2"
+        case "webmanifest": return "application/manifest+json"
+        default:            return "application/octet-stream"
+        }
+    }
+
+    private func parseHeaders(_ lines: ArraySlice<String>) -> [String: String] {
+        var headers: [String: String] = [:]
+        for line in lines where !line.isEmpty {
+            let parts = line.split(separator: ":", maxSplits: 1)
+            guard parts.count == 2 else { continue }
+            headers[String(parts[0]).lowercased()] = parts[1].trimmingCharacters(in: .whitespaces)
+        }
+        return headers
+    }
+
+    private func allowedOrigins() -> Set<String> {
+        var origins: Set<String> = ["null"]  // PWA/standalone mode sends Origin: null
+        if let hostname = Self.localHostname() {
+            origins.insert("http://\(hostname).local:\(port)".lowercased())
+        }
+        if let ip = Self.localIPAddress() {
+            origins.insert("http://\(ip):\(port)")
+        }
+        return origins
+    }
+
+    private static func localHostname() -> String? {
+        SCDynamicStoreCopyLocalHostName(nil) as String?
+    }
+
+    private static func localIPAddress() -> String? {
+        var addr = sockaddr_in()
+        addr.sin_family = sa_family_t(AF_INET)
+        addr.sin_port = 80
+        addr.sin_addr.s_addr = inet_addr("8.8.8.8")
+
+        let sock = socket(AF_INET, SOCK_DGRAM, 0)
+        guard sock != -1 else { return nil }
+        defer { close(sock) }
+
+        let connected = withUnsafePointer(to: &addr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                connect(sock, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
+        }
+        guard connected == 0 else { return nil }
+
+        var local = sockaddr_in()
+        var len = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let named = withUnsafeMutablePointer(to: &local) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                getsockname(sock, $0, &len)
+            }
+        }
+        guard named == 0 else { return nil }
+
+        var buffer = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
+        inet_ntop(AF_INET, &local.sin_addr, &buffer, socklen_t(INET_ADDRSTRLEN))
+        return String(cString: buffer)
+    }
+
+    private func upgradeToWebSocket(headers: [String: String], connectionID: ObjectIdentifier) {
+        guard let client = clients[connectionID] else { return }
+
+        guard let origin = headers["origin"] else {
+            print("iControl: WebSocket rejected — missing Origin header")
+            send(status: "403 Forbidden", body: "Forbidden", contentType: "text/plain", to: client.connection, closeAfterSend: true)
+            return
+        }
+
+        guard allowedOrigins().contains(origin.lowercased()) else {
+            print("iControl: WebSocket rejected — disallowed origin: \(origin)")
+            send(status: "403 Forbidden", body: "Forbidden", contentType: "text/plain", to: client.connection, closeAfterSend: true)
+            return
+        }
+
+        guard let key = headers["sec-websocket-key"] else {
+            send(status: "400 Bad Request", body: "Missing WebSocket Key", contentType: "text/plain", to: client.connection, closeAfterSend: true)
+            return
+        }
+
+        let accept = websocketAccept(for: key)
+        let response =
+            "HTTP/1.1 101 Switching Protocols\r\n" +
+            "Upgrade: websocket\r\n" +
+            "Connection: Upgrade\r\n" +
+            "Sec-WebSocket-Accept: \(accept)\r\n" +
+            "\r\n"
+
+        client.connection.send(content: Data(response.utf8), completion: .contentProcessed { [weak self] error in
+            guard let self else { return }
+
+            if let error {
+                print("iControl: WebSocket upgrade failed: \(error)")
+                self.removeConnection(id: connectionID)
+                return
+            }
+
+            print("iControl: WebSocket upgrade succeeded")
+            let socket = WebSocketServer(
+                connection: client.connection,
+                inputController: self.inputController,
+                authContext: self.authContext,
+                hmacKey: self.hmacKey
+            )
+            self.webSockets[connectionID] = socket
+            socket.start()
+        })
+    }
+
+    private func prepareIndexHTML(data: Data) -> Data? {
+        guard var html = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+
+        html = html.replacingOccurrences(of: "\"ICONTROL_HMAC_KEY\"", with: "\"\(hmacKey)\"")
+        html = appendSessionVersionSuffix(in: html)
+        return Data(html.utf8)
+    }
+
+    private func appendSessionVersionSuffix(in html: String) -> String {
+        guard let regex = try? NSRegularExpression(pattern: "<meta\\s+name=\"version\"\\s+content=\"([^\"]*)\""),
+              let match = regex.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)),
+              let versionRange = Range(match.range(at: 1), in: html) else {
+            return html
+        }
+
+        var updated = html
+        let baseVersion = String(updated[versionRange])
+        updated.replaceSubrange(versionRange, with: "\(baseVersion)_\(sessionVersionSuffix)")
+        return updated
+    }
+
+    private static func randomAlphanumeric(length: Int) -> String {
+        String((0..<length).map { _ in randomChars[Int.random(in: 0..<randomChars.count)] })
+    }
+
+    private func websocketAccept(for key: String) -> String {
+        let magic = key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+        let hash = Insecure.SHA1.hash(data: Data(magic.utf8))
+        return Data(hash).base64EncodedString()
+    }
+
+    private func send(status: String, body: String, contentType: String, to connection: NWConnection, closeAfterSend: Bool) {
+        send(status: status, data: Data(body.utf8), contentType: contentType, to: connection, closeAfterSend: closeAfterSend)
+    }
+
+    private func send(status: String, data: Data, contentType: String, to connection: NWConnection, closeAfterSend: Bool) {
+        let response =
+            "HTTP/1.1 \(status)\r\n" +
+            "Content-Type: \(contentType)\r\n" +
+            "Content-Length: \(data.count)\r\n" +
+            "Connection: \(closeAfterSend ? "close" : "keep-alive")\r\n" +
+            "\r\n"
+
+        var packet = Data(response.utf8)
+        packet.append(data)
+
+        connection.send(content: packet, completion: .contentProcessed { [weak self] error in
+            if let error {
+                print("iControl: send failed: \(error)")
+            }
+            if closeAfterSend {
+                connection.cancel()
+            }
+            if closeAfterSend, let self {
+                self.removeConnection(id: ObjectIdentifier(connection))
+            }
+        })
+    }
+
+    private func removeConnection(id: ObjectIdentifier) {
+        clients[id] = nil
+        webSockets[id] = nil
+    }
+
+    func disconnectAllWebSockets() {
+        queue.async { [weak self] in
+            guard let self else { return }
+            for socket in self.webSockets.values {
+                socket.disconnect()
+            }
+            self.webSockets = [:]
+        }
+    }
+
+    private func broadcastVolume(_ volume: Double) {
+        queue.async { [weak self] in
+            guard let self else { return }
+            for socket in self.webSockets.values {
+                socket.sendState(volume: volume)
+            }
+        }
+    }
+}
+
+private final class ClientConnection {
+    let connection: NWConnection
+    var buffer = Data()
+
+    init(connection: NWConnection) {
+        self.connection = connection
+    }
+}
+
+§ iControl/Server/WebSocketServer.swift
+import AppKit
+import CryptoKit
+import Foundation
+import Network
+
+
+struct KbFlags: Codable {
+    let shift: Bool?
+    let ctrl: Bool?
+    let opt: Bool?
+    let cmd: Bool?
+}
+
+struct RemoteCommand: Decodable {
+    let type: String
+    let key: String?
+    let url: String?
+    let target: String?
+    let value: CommandValue?
+    let button: String?
+    let action: String?
+    let app: String?
+    let dx: Double?
+    let dy: Double?
+    let flags: KbFlags?
+    let token: String?
+    let device: String?
+}
+
+enum CommandValue: Decodable {
+    case string(String)
+    case number(Double)
+
+    var stringValue: String? {
+        if case let .string(value) = self {
+            return value
+        }
+        return nil
+    }
+
+    var numberValue: Double? {
+        if case let .number(value) = self {
+            return value
+        }
+        return nil
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+
+        if let string = try? container.decode(String.self) {
+            self = .string(string)
+            return
+        }
+
+        self = .number(try container.decode(Double.self))
+    }
+}
+
+enum ConnectionAuthState {
+    case pending
+    case approved
+}
+
+final class WebSocketServer {
+    private static let maxFramePayloadBytes = 1_048_576
+    private static let maxNonTextPayloadBytes = 4_096
+    private static let rateLimitWindowSeconds: TimeInterval = 1
+    private static let maxCommandsPerWindow = 120
+
+    private let connection: NWConnection
+    private let inputController: InputController
+    private let authContext: AuthContext
+    private let hmacKey: SymmetricKey
+    private var authState: ConnectionAuthState = .pending
+    private var commandCount = 0
+    private var windowStart = Date()
+
+    init(connection: NWConnection, inputController: InputController, authContext: AuthContext, hmacKey: String) {
+        self.connection = connection
+        self.inputController = inputController
+        self.authContext = authContext
+        self.hmacKey = SymmetricKey(data: Data(hmacKey.utf8))
+    }
+
+    func start() {
+        if authContext.mode == "open" {
+            authState = .approved
+            sendMessage(#"{"type":"auth:open"}"#)
+        }
+        sendInitialState()
+        receiveFrame()
+    }
+
+    func disconnect() {
+        sendFrame(opcode: 0x8, payload: Data())
+        connection.cancel()
+    }
+
+    func sendState(volume: Double) {
+        let roundedVolume = Int(volume.rounded())
+        let payload = #"{"type":"state","volume":\#(roundedVolume)}"#
+        sendFrame(opcode: 0x1, payload: Data(payload.utf8))
+    }
+
+    private func receiveFrame() {
+        connection.receive(minimumIncompleteLength: 2, maximumLength: Self.maxFramePayloadBytes + 32) { [weak self] data, _, isComplete, error in
+            guard let self else {
+                return
+            }
+
+            if let data, !data.isEmpty {
+                self.handleFrame(data)
+            }
+
+            if error == nil && !isComplete {
+                self.receiveFrame()
+            }
+        }
+    }
+
+    private func handleFrame(_ data: Data) {
+        guard let frame = decodeFrame(data) else {
+            return
+        }
+
+        switch frame.opcode {
+        case 0x1:
+            handleText(frame.payload)
+        case 0x8:
+            connection.cancel()
+        case 0x9:
+            sendFrame(opcode: 0xA, payload: frame.payload)
+        default:
+            break
+        }
+    }
+
+    private func handleText(_ payload: Data) {
+        let unwrapResult = unwrapAndVerifySignedPayload(payload)
+        switch unwrapResult {
+        case .malformed:
+            return
+        case .signatureMismatch:
+            sendMessage(#"{"type":"key:expired"}"#)
+            return
+        case .valid(let verifiedPayload):
+            guard let command = try? JSONDecoder().decode(RemoteCommand.self, from: verifiedPayload) else {
+                return
+            }
+
+            if command.type != "text", verifiedPayload.count > Self.maxNonTextPayloadBytes {
+                return
+            }
+
+            if shouldRateLimit() {
+                return
+            }
+
+            // Gate on auth state — only auth messages pass while pending
+            if authState == .pending {
+                switch command.type {
+                case "auth":
+                    handleAuthMessage(command)
+                case "auth:request":
+                    handleAuthRequest(command)
+                default:
+                    break
+                }
+                return
+            }
+
+            // Approved: dispatch normal commands
+            switch command.type {
+            case "key":
+                if let key = command.key {
+                    inputController.pressKey(key: key)
+                }
+            case "text":
+                if let value = command.value?.stringValue {
+                    inputController.typeText(string: value)
+                }
+            case "click":
+                inputController.mouseClick(button: command.button ?? "left", flags: command.flags)
+            case "mouseDown":
+                inputController.mouseDown(button: command.button ?? "left")
+            case "mouseUp":
+                inputController.mouseUp(button: command.button ?? "left")
+            case "dragMove":
+                inputController.dragMouse(dx: command.dx ?? 0, dy: command.dy ?? 0)
+            case "move":
+                inputController.moveMouse(dx: command.dx ?? 0, dy: command.dy ?? 0)
+            case "scroll":
+                inputController.scroll(dx: command.dx ?? 0, dy: command.dy ?? 0)
+            case "system":
+                if let action = command.action {
+                    inputController.performSystemAction(action, value: command.value?.numberValue)
+                }
+            case "app":
+                if let app = command.app {
+                    inputController.launchApp(app)
+                }
+            case "url":
+                if let url = command.url {
+                    inputController.openURL(url)
+                }
+            case "open":
+                if let target = command.target {
+                    inputController.openTarget(target)
+                }
+            case "kb":
+                if let key = command.key {
+                    inputController.handleKbInput(key, flags: command.flags)
+                }
+            case "auth":
+                if authContext.mode == "open" {
+                    sendMessage(#"{"type":"auth:open"}"#)
+                }
+            default:
+                break
+            }
+        }
+    }
+
+    // MARK: - Auth message handling
+
+    private func handleAuthMessage(_ command: RemoteCommand) {
+        let token = command.token ?? ""
+
+        guard authContext.isWellFormed(token) else {
+            sendMessage(#"{"type":"auth:rejected","reason":"invalid_token"}"#)
+            return
+        }
+
+        if authContext.isTokenValid(token) {
+            authState = .approved
+            let safeToken = token.replacingOccurrences(of: "\"", with: "")
+            sendMessage(#"{"type":"auth:approved","token":"\#(safeToken)","session":false}"#)
+        } else {
+            sendMessage(#"{"type":"auth:rejected","reason":"invalid_token"}"#)
+        }
+    }
+
+    private func handleAuthRequest(_ command: RemoteCommand) {
+        let deviceName = command.device ?? "Unknown Device"
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+
+            let alert = NSAlert()
+            alert.messageText = "Connection Request"
+            alert.informativeText = "\(deviceName) wants to control your Mac via iControl."
+            alert.addButton(withTitle: "Allow")
+            alert.addButton(withTitle: "Deny")
+            alert.alertStyle = .warning
+            let response = alert.runModal()
+
+            if response == .alertFirstButtonReturn {
+                let sessionToken = AuthContext.generateToken()
+                self.authContext.approvedSessions.insert(sessionToken)
+                self.authState = .approved
+                self.sendMessage(#"{"type":"auth:approved","token":"\#(sessionToken)","session":true}"#)
+            } else {
+                self.sendMessage(#"{"type":"auth:rejected","reason":"denied"}"#)
+            }
+        }
+    }
+
+    // MARK: - Frame helpers
+
+    private func sendMessage(_ text: String) {
+        sendFrame(opcode: 0x1, payload: Data(text.utf8))
+    }
+
+    private func sendFrame(opcode: UInt8, payload: Data) {
+        var frame = Data()
+        frame.append(0x80 | opcode)
+
+        if payload.count < 126 {
+            frame.append(UInt8(payload.count))
+        } else if payload.count <= 65_535 {
+            frame.append(126)
+            frame.append(UInt8((payload.count >> 8) & 0xFF))
+            frame.append(UInt8(payload.count & 0xFF))
+        } else {
+            frame.append(127)
+            for shift in stride(from: 56, through: 0, by: -8) {
+                frame.append(UInt8((UInt64(payload.count) >> UInt64(shift)) & 0xFF))
+            }
+        }
+
+        frame.append(payload)
+        connection.send(content: frame, completion: .contentProcessed { _ in })
+    }
+
+    private func sendInitialState() {
+        guard let volume = inputController.currentVolumePercentage() else {
+            return
+        }
+
+        sendState(volume: volume)
+    }
+
+    private func decodeFrame(_ data: Data) -> (opcode: UInt8, payload: Data)? {
+        guard data.count >= 2 else {
+            return nil
+        }
+
+        let opcode = data[0] & 0x0F
+        let masked = (data[1] & 0x80) != 0
+        var payloadLength = Int(data[1] & 0x7F)
+        var offset = 2
+
+        if payloadLength == 126 {
+            guard data.count >= 4 else {
+                return nil
+            }
+
+            payloadLength = Int(data[2]) << 8 | Int(data[3])
+            offset = 4
+        } else if payloadLength == 127 {
+            guard data.count >= 10 else {
+                return nil
+            }
+
+            payloadLength = 0
+            for index in 2..<10 {
+                payloadLength = (payloadLength << 8) | Int(data[index])
+            }
+            offset = 10
+        }
+
+        if payloadLength > Self.maxFramePayloadBytes {
+            connection.cancel()
+            return nil
+        }
+
+        var maskKey = [UInt8]()
+        if masked {
+            guard data.count >= offset + 4 else {
+                return nil
+            }
+
+            maskKey = Array(data[offset..<(offset + 4)])
+            offset += 4
+        }
+
+        guard data.count >= offset + payloadLength else {
+            return nil
+        }
+
+        let payload = Data(data[offset..<(offset + payloadLength)])
+        guard masked else {
+            return (opcode, payload)
+        }
+
+        let unmasked = Data(payload.enumerated().map { index, byte in
+            byte ^ maskKey[index % 4]
+        })
+
+        return (opcode, unmasked)
+    }
+
+    private enum SignedPayloadResult {
+        case valid(Data)
+        case signatureMismatch
+        case malformed
+    }
+
+    private func unwrapAndVerifySignedPayload(_ data: Data) -> SignedPayloadResult {
+        guard let envelope = parseSignedEnvelope(data) else {
+            return .malformed
+        }
+
+        if verifyHMAC(payload: envelope.payloadData, signature: envelope.signatureData) {
+            return .valid(envelope.payloadData)
+        }
+
+        return .signatureMismatch
+    }
+
+    private func verifyHMAC(payload: Data, signature: Data) -> Bool {
+        let expectedMAC = HMAC<SHA256>.authenticationCode(for: payload, using: hmacKey)
+        return Data(expectedMAC) == signature
+    }
+
+    private func parseSignedEnvelope(_ data: Data) -> (payloadData: Data, signatureData: Data)? {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              json["p"] != nil,
+              let signatureBase64 = json["s"] as? String,
+              let signatureData = Data(base64Encoded: signatureBase64),
+              let payloadData = extractPayloadJSONData(from: data) else {
+            return nil
+        }
+
+        return (payloadData, signatureData)
+    }
+
+    private func extractPayloadJSONData(from frameData: Data) -> Data? {
+        guard let text = String(data: frameData, encoding: .utf8) else {
+            return nil
+        }
+
+        guard let payloadRange = topLevelJSONValueRange(forKey: "p", in: text) else {
+            return nil
+        }
+
+        let payloadJSON = text[payloadRange]
+        return Data(payloadJSON.utf8)
+    }
+
+    private func topLevelJSONValueRange(forKey targetKey: String, in text: String) -> Range<String.Index>? {
+        var index = text.startIndex
+        skipWhitespace(in: text, index: &index)
+        guard index < text.endIndex, text[index] == "{" else {
+            return nil
+        }
+
+        index = text.index(after: index)
+
+        while index < text.endIndex {
+            skipWhitespace(in: text, index: &index)
+            guard index < text.endIndex else { return nil }
+            if text[index] == "}" {
+                return nil
+            }
+
+            guard let key = parseJSONString(in: text, index: &index) else {
+                return nil
+            }
+
+            skipWhitespace(in: text, index: &index)
+            guard index < text.endIndex, text[index] == ":" else {
+                return nil
+            }
+            index = text.index(after: index)
+            skipWhitespace(in: text, index: &index)
+
+            let valueStart = index
+            guard let valueEnd = parseJSONValueEnd(in: text, from: index) else {
+                return nil
+            }
+            index = valueEnd
+
+            if key == targetKey {
+                return valueStart..<valueEnd
+            }
+
+            skipWhitespace(in: text, index: &index)
+            guard index < text.endIndex else { return nil }
+            if text[index] == "," {
+                index = text.index(after: index)
+                continue
+            }
+            if text[index] == "}" {
+                return nil
+            }
+            return nil
+        }
+
+        return nil
+    }
+
+    private func parseJSONValueEnd(in text: String, from start: String.Index) -> String.Index? {
+        guard start < text.endIndex else {
+            return nil
+        }
+
+        let char = text[start]
+        if char == "\"" {
+            var cursor = text.index(after: start)
+            var isEscaped = false
+            while cursor < text.endIndex {
+                let current = text[cursor]
+                if isEscaped {
+                    isEscaped = false
+                } else if current == "\\" {
+                    isEscaped = true
+                } else if current == "\"" {
+                    return text.index(after: cursor)
+                }
+                cursor = text.index(after: cursor)
+            }
+            return nil
+        }
+
+        if char == "{" || char == "[" {
+            var cursor = start
+            var depth = 0
+            var inString = false
+            var isEscaped = false
+
+            while cursor < text.endIndex {
+                let current = text[cursor]
+
+                if inString {
+                    if isEscaped {
+                        isEscaped = false
+                    } else if current == "\\" {
+                        isEscaped = true
+                    } else if current == "\"" {
+                        inString = false
+                    }
+                } else {
+                    if current == "\"" {
+                        inString = true
+                    } else if current == "{" || current == "[" {
+                        depth += 1
+                    } else if current == "}" || current == "]" {
+                        depth -= 1
+                        if depth == 0 {
+                            return text.index(after: cursor)
+                        }
+                    }
+                }
+
+                cursor = text.index(after: cursor)
+            }
+            return nil
+        }
+
+        var cursor = start
+        while cursor < text.endIndex {
+            let current = text[cursor]
+            if current == "," || current == "}" || current.isWhitespace {
+                return cursor
+            }
+            cursor = text.index(after: cursor)
+        }
+        return cursor
+    }
+
+    private func parseJSONString(in text: String, index: inout String.Index) -> String? {
+        guard index < text.endIndex, text[index] == "\"" else {
+            return nil
+        }
+
+        let start = index
+        var cursor = text.index(after: index)
+        var isEscaped = false
+        while cursor < text.endIndex {
+            let current = text[cursor]
+            if isEscaped {
+                isEscaped = false
+            } else if current == "\\" {
+                isEscaped = true
+            } else if current == "\"" {
+                let end = text.index(after: cursor)
+                let stringSlice = text[start..<end]
+                let data = Data(stringSlice.utf8)
+                guard let parsed = try? JSONSerialization.jsonObject(with: data) as? String else {
+                    return nil
+                }
+                index = end
+                return parsed
+            }
+            cursor = text.index(after: cursor)
+        }
+        return nil
+    }
+
+    private func skipWhitespace(in text: String, index: inout String.Index) {
+        while index < text.endIndex, text[index].isWhitespace {
+            index = text.index(after: index)
+        }
+    }
+
+    private func shouldRateLimit() -> Bool {
+        let now = Date()
+        if now.timeIntervalSince(windowStart) > Self.rateLimitWindowSeconds {
+            windowStart = now
+            commandCount = 0
+        }
+
+        commandCount += 1
+        return commandCount > Self.maxCommandsPerWindow
+    }
+}
