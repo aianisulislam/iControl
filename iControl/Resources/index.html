@@ -18,12 +18,21 @@
     <style>
       :root {
         --color-bg: #0b1220;
+        --color-bg-deep: #020617;
+        --color-glow: rgba(5, 2, 59, 0.6);
+        --color-surface: rgba(0, 0, 0, 0.25);
         --color-text: #e5e7eb;
         --color-text-muted: #c1cbda;
         --color-button: #18223b;
-        --color-button-active: #283861;
+        --color-button-active: #253252;
         --color-border: rgba(71, 85, 105, 0.35);
-        --color-border-accent: rgba(71, 85, 105, 0.5);
+        --color-key-secondary: #71717a;
+        --gradient-touchpad: linear-gradient(180deg, rgba(25, 42, 96, 0.25), var(--color-surface));
+        --gradient-wheel: radial-gradient(circle at 40% 40%, rgba(69, 85, 134, 0.25), var(--color-surface));
+        --shadow-wheel: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 8px 20px rgba(0, 0, 0, 0.4);
+        --shadow-raised: inset 0 2px 4px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3);
+        --color-danger: #f87171;
+        --color-success: #22c55e;
         --radius: 1.25rem;
         --radius-lg: 2.4rem;
         --gap: 0.65rem;
@@ -70,8 +79,8 @@
         flex-direction: column;
         padding: 0;
         position: relative;
-        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-        background: radial-gradient(circle at top, rgba(5, 2, 59, 0.6), transparent 38%), linear-gradient(180deg, var(--color-bg), #020617);
+        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        background: radial-gradient(circle at top, var(--color-glow), transparent 38%), linear-gradient(180deg, var(--color-bg), var(--color-bg-deep));
       }
       body.drawer-open {
         transform: translateX(320px);
@@ -142,9 +151,7 @@
       #tab-wrapper {
         padding: var(--padding);
         border-radius: var(--radius-lg);
-        background: rgba(0, 0, 0, 0.25);
         border: 1px solid var(--color-border);
-        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
         backdrop-filter: blur(10px);
         max-inline-size: 42rem;
         inline-size: 100%;
@@ -160,7 +167,6 @@
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--color-text-muted);
-        transition: all 0.2s ease;
         line-height: 1.2rem;
         border-block-end: 2px solid transparent;
         padding: 0 var(--gap) 0.5rem var(--gap);
@@ -176,13 +182,12 @@
         max-inline-size: 42rem;
         inline-size: 100%;
         border-radius: var(--radius-lg);
-        background: linear-gradient(180deg, rgba(25, 42, 96, 0.25), rgba(0, 0, 0, 0.25));
-        border: 1px solid var(--color-border-accent);
+        background: var(--gradient-touchpad);
+        border: 1px solid var(--color-border);
         overflow: hidden;
         display: flex;
         flex-direction: column;
         align-items: stretch;
-        transition: all 0.3s ease-in-out;
         order: 1;
       }
       #touchpad {
@@ -195,10 +200,10 @@
         touch-action: none;
       }
       #touchpad.drag-mode {
-        background: rgba(180, 100, 255, 0.08);
+        background: var(--color-button-active);
       }
       #cursorPad.select-mode {
-        background: rgba(100, 150, 255, 0.2);
+        background: var(--color-button-active);
       }
       #touchpad-buttons {
         flex: 0 0 48px;
@@ -243,7 +248,6 @@
         background: var(--color-button);
         color: var(--color-text-muted);
         cursor: pointer;
-        transition: inline-size 0.2s ease;
         font-size: 12px;
         position: relative;
       }
@@ -305,11 +309,9 @@
         block-size: 220px;
         margin: 0 auto 0.75rem;
         border-radius: 50%;
-        background: radial-gradient(circle at 40% 40%, rgba(69, 85, 134, 0.25), rgba(0, 0, 0, 0.25));
-        border: 2px solid var(--color-border-accent);
-        box-shadow:
-          inset 0 2px 8px rgba(0, 0, 0, 0.6),
-          0 8px 20px rgba(0, 0, 0, 0.4);
+        background: var(--gradient-wheel);
+        border: 2px solid var(--color-border);
+        box-shadow: var(--shadow-wheel);
       }
       .wheel-button,
       .wheel-center {
@@ -328,7 +330,6 @@
       }
       .wheel-button:active {
         background: var(--color-button-active);
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
       }
       .wheel-center {
         inset-block-start: 50%;
@@ -336,17 +337,12 @@
         transform: translate(-50%, -50%);
         inline-size: 72px;
         block-size: 72px;
-        border: 2px solid rgba(71, 85, 105, 0.6);
+        border: 2px solid var(--color-border);
         background: var(--color-button);
-        box-shadow:
-          inset 0 2px 4px rgba(0, 0, 0, 0.4),
-          0 4px 8px rgba(0, 0, 0, 0.3);
+        box-shadow: var(--shadow-raised);
       }
       .wheel-center:active {
-        background: #0f1729;
-        box-shadow:
-          inset 0 3px 6px rgba(0, 0, 0, 0.6),
-          0 2px 4px rgba(0, 0, 0, 0.3);
+        background: var(--color-button-active);
       }
       .wheel-button-up {
         inset-block-start: 0;
@@ -418,7 +414,7 @@
         inset-inline-start: 0;
         block-size: 100%;
         inline-size: 320px;
-        background: radial-gradient(circle at top, rgba(5, 2, 59, 0.6), transparent 38%), linear-gradient(180deg, var(--color-bg), #020617);
+        background: radial-gradient(circle at top, var(--color-glow), transparent 38%), linear-gradient(180deg, var(--color-bg), var(--color-bg-deep));
         border-inline-end: 1px solid var(--color-border);
         z-index: 101;
         transform: translateX(-100%);
@@ -487,7 +483,7 @@
         justify-content: space-between;
         gap: 1rem;
         padding: 0.85rem 0;
-        border-block-start: 1px solid rgba(71, 85, 105, 0.18);
+        border-block-start: 1px solid var(--color-border-subtle);
       }
       .drawer-toggle-text {
         display: flex;
@@ -522,10 +518,8 @@
         position: absolute;
         inset: 0;
         border-radius: 999px;
-        background: rgba(71, 85, 105, 0.45);
-        transition:
-          background 0.2s ease,
-          transform 0.2s ease;
+        background: var(--color-button);
+        transition: all 0.2s ease;
       }
       .drawer-switch-track::after {
         content: "";
@@ -580,7 +574,6 @@
         inline-size: 100%;
         --key-width: calc(calc(min(100vi, 1920px) - 14px) / 14.5);
         --key-height: 48px;
-        transition: all 1s ease-in-out;
         overflow: hidden;
         max-inline-size: 1920px;
         block-size: auto;
@@ -605,8 +598,8 @@
         border-radius: 2px;
         font-size: 12px;
         cursor: pointer;
-        user-select: none;
-        transition: all 0.1s ease;
+        user-select: none;        
+        transition: inline-size 0.2s ease;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -672,7 +665,7 @@
       }
       .keyboard .key.dual .top {
         font-size: 10px;
-        color: #71717a;
+        color: var(--color-key-secondary);
         line-height: 1;
         font-weight: inherit;
       }
@@ -689,7 +682,7 @@
       }
       .keyboard.shift-active .key.dual .bottom {
         font-size: 10px;
-        color: #71717a;
+        color: var(--color-key-secondary);
         font-weight: inherit;
       }
       .keyboard .fn .key.dual .top {
@@ -700,7 +693,7 @@
       .keyboard .fn .key.dual .bottom {
         font-size: 10px;
         font-weight: inherit;
-        color: #71717a;
+        color: var(--color-key-secondary);
       }
       .keyboard .key-label-short {
         display: none;
@@ -719,11 +712,15 @@
       @media screen and (min-width: 820px) and (min-height: 480px) {
         .keyboard {
           --key-height: 72px;
+          gap: 2px
+        }
+        .keyboard .row {
+          gap: 2px
         }
         .keyboard .key {
           font-size: 16px;
-          border-radius: 12px;
-          border: 1px solid #020617;
+          border-radius: 8px;
+          width: calc(var(--key-width) - 2px);
         }
         .keyboard .key.dual {
           padding: 0.75rem;
@@ -744,11 +741,15 @@
       @media screen and (min-width: 1280px) {
         .keyboard {
           --key-height: 84px;
+          gap: 4px
+        }
+        .keyboard .row {
+          gap: 4px
         }
         .keyboard .key {
           font-size: 18px;
-          border-radius: 16px;
-          border: 2px solid #020617;
+          border-radius: 12px;
+          width: calc(var(--key-width) - 4px);
         }
         .keyboard .key.dual {
           padding: 1rem;
@@ -813,7 +814,7 @@
         outline: none;
       }
       #auth-error-message {
-        color: #f87171;
+        color: var(--color-danger);
         font-size: 0.85rem;
       }
       #auth-submit {
@@ -2402,7 +2403,7 @@
           socket = new WebSocket(`ws://${location.host}/`);
 
           socket.addEventListener("open", () => {
-            status.style.color = "#22c55e";
+            status.style.setProperty("color", "var(--color-success)");
             connectingPromise = null;
             reconnectAttempts = 0;
             resolve();
@@ -2412,7 +2413,7 @@
           });
 
           socket.addEventListener("close", () => {
-            status.style.color = "#f87171";
+            status.style.setProperty("color", "var(--color-danger)");
             connectingPromise = null;
             if (!isDenied() && reconnectAttempts < MAX_RECONNECT) {
               reconnectAttempts++;
@@ -2421,7 +2422,7 @@
           });
 
           socket.addEventListener("error", () => {
-            status.style.color = "#f87171";
+            status.style.setProperty("color", "var(--color-danger)");
             connectingPromise = null;
             reject();
           });
