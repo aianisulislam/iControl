@@ -3813,7 +3813,7 @@
           navigator.serviceWorker.register("/sw.js").catch((err) => console.error("SW registration failed:", err));
         });
         navigator.serviceWorker.addEventListener("message", (event) => {
-          if (event.data?.type === "UPDATE_AVAILABLE") {
+          if (event.data?.type === "UPDATE_AVAILABLE" && navigator.onLine) {
             window.location.reload();
           }
         });

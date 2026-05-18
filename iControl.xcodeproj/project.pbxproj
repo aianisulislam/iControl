@@ -10,25 +10,9 @@
 		76DF05E92F5F7A3800A9B6A2 /* iControl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iControl.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		763B3AD82F68AEC500C48202 /* Exceptions for "iControl" folder in "iControl" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Resources/Archives/index_v1.0.0.html,
-				Resources/Archives/index_v1.1.0.html,
-				Resources/Archives/index_v1.1.1.html,
-				Resources/Archives/index_v1.2.0.html,
-			);
-			target = 76DF05E82F5F7A3800A9B6A2 /* iControl */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		76DF05EB2F5F7A3800A9B6A2 /* iControl */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				763B3AD82F68AEC500C48202 /* Exceptions for "iControl" folder in "iControl" target */,
-			);
 			path = iControl;
 			sourceTree = "<group>";
 		};
@@ -312,7 +296,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = 1.3.0;
+				MARKETING_VERSION = 1.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.anis.iControl;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -362,7 +346,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = 1.3.0;
+				MARKETING_VERSION = 1.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.anis.iControl;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
