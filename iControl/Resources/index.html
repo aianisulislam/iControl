@@ -194,10 +194,14 @@
         flex: 1;
         user-select: none;
         touch-action: none;
+        position: relative;
+        overflow: hidden;
       }
 
       #cursorPad {
         touch-action: none;
+        position: relative;
+        overflow: hidden;
       }
       #touchpad.drag-mode {
         background: var(--color-button-active);
@@ -834,6 +838,32 @@
         background: transparent;
         block-size: 3.2rem;
         border: 2px solid var(--color-button);
+      }
+      /* ── Touch bubbles ── */
+      .touch-bubble {
+        position: absolute;
+        inline-size: 48px;
+        block-size: 48px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 38% 34%, rgba(180, 200, 255, 0.28), rgba(90, 120, 240, 0.08) 65%);
+        border: 1px solid rgba(160, 185, 255, 0.32);
+        box-shadow: 0 0 12px rgba(100, 140, 255, 0.18);
+        pointer-events: none;
+        z-index: 20;
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+        animation: touch-bubble-in 0.14s cubic-bezier(0.34, 1.5, 0.64, 1) forwards;
+      }
+      .touch-bubble.removing {
+        animation: touch-bubble-out 0.2s ease forwards;
+      }
+      @keyframes touch-bubble-in {
+        from { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+        to   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      }
+      @keyframes touch-bubble-out {
+        from { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        to   { transform: translate(-50%, -50%) scale(0.35); opacity: 0; }
       }
     </style>
   </head>
@@ -3023,7 +3053,49 @@
         };
       };
 
+      // ── Touch bubble feedback ────────────────────────────────────────────────────
+      const attachTouchBubbles = (element) => {
+        const active = new Map();
+
+        const place = (bubble, clientX, clientY) => {
+          const r = element.getBoundingClientRect();
+          bubble.style.left = (clientX - r.left) + "px";
+          bubble.style.top  = (clientY - r.top)  + "px";
+        };
+
+        element.addEventListener("touchstart", (e) => {
+          for (const t of e.changedTouches) {
+            const b = document.createElement("div");
+            b.className = "touch-bubble";
+            place(b, t.clientX, t.clientY);
+            element.appendChild(b);
+            active.set(t.identifier, b);
+          }
+        }, { passive: true });
+
+        element.addEventListener("touchmove", (e) => {
+          for (const t of e.changedTouches) {
+            const b = active.get(t.identifier);
+            if (b) place(b, t.clientX, t.clientY);
+          }
+        }, { passive: true });
+
+        const release = (changedTouches) => {
+          for (const t of changedTouches) {
+            const b = active.get(t.identifier);
+            if (!b) continue;
+            active.delete(t.identifier);
+            b.classList.add("removing");
+            b.addEventListener("animationend", () => b.remove(), { once: true });
+          }
+        };
+
+        element.addEventListener("touchend",    (e) => release(e.changedTouches), { passive: true });
+        element.addEventListener("touchcancel", (e) => release(e.changedTouches), { passive: true });
+      };
+
       const touchpadEl = document.getElementById("touchpad");
+      attachTouchBubbles(touchpadEl);
       touchTracker(
         touchpadEl,
         {
@@ -3089,6 +3161,7 @@
       );
 
       const cursorPadEl = document.getElementById("cursorPad");
+      attachTouchBubbles(cursorPadEl);
       const BASE_PIXELS_PER_KEY = 12;
 
       let cursorAccX = 0;
