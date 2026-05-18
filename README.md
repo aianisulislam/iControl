@@ -265,6 +265,8 @@ System Settings → Privacy & Security → Accessibility
 
 This is required for any app simulating input via `CGEvent`.
 
+**Upgrading?** macOS ties the Accessibility grant to the app's code signature. After replacing iControl with a new build, open System Settings → Privacy & Security → Accessibility, remove the old iControl entry, and drag in the new app. Without this step, commands will appear to send but nothing will execute on your Mac. Or just delete the older version completely before getting the updated version.
+
 ---
 
 ## Philosophy
