@@ -1,6 +1,7 @@
 import Foundation
 import Network
 import CryptoKit
+import SystemConfiguration
 
 final class HTTPServer {
     private let port: UInt16
@@ -213,8 +214,66 @@ final class HTTPServer {
         return headers
     }
 
+    private func allowedOrigins() -> Set<String> {
+        var origins: Set<String> = ["null"]  // PWA/standalone mode sends Origin: null
+        if let hostname = Self.localHostname() {
+            origins.insert("http://\(hostname).local:\(port)".lowercased())
+        }
+        if let ip = Self.localIPAddress() {
+            origins.insert("http://\(ip):\(port)")
+        }
+        return origins
+    }
+
+    private static func localHostname() -> String? {
+        SCDynamicStoreCopyLocalHostName(nil) as String?
+    }
+
+    private static func localIPAddress() -> String? {
+        var addr = sockaddr_in()
+        addr.sin_family = sa_family_t(AF_INET)
+        addr.sin_port = 80
+        addr.sin_addr.s_addr = inet_addr("8.8.8.8")
+
+        let sock = socket(AF_INET, SOCK_DGRAM, 0)
+        guard sock != -1 else { return nil }
+        defer { close(sock) }
+
+        let connected = withUnsafePointer(to: &addr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                connect(sock, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
+        }
+        guard connected == 0 else { return nil }
+
+        var local = sockaddr_in()
+        var len = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let named = withUnsafeMutablePointer(to: &local) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                getsockname(sock, $0, &len)
+            }
+        }
+        guard named == 0 else { return nil }
+
+        var buffer = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
+        inet_ntop(AF_INET, &local.sin_addr, &buffer, socklen_t(INET_ADDRSTRLEN))
+        return String(cString: buffer)
+    }
+
     private func upgradeToWebSocket(headers: [String: String], connectionID: ObjectIdentifier) {
         guard let client = clients[connectionID] else { return }
+
+        guard let origin = headers["origin"] else {
+            print("iControl: WebSocket rejected — missing Origin header")
+            send(status: "403 Forbidden", body: "Forbidden", contentType: "text/plain", to: client.connection, closeAfterSend: true)
+            return
+        }
+
+        guard allowedOrigins().contains(origin.lowercased()) else {
+            print("iControl: WebSocket rejected — disallowed origin: \(origin)")
+            send(status: "403 Forbidden", body: "Forbidden", contentType: "text/plain", to: client.connection, closeAfterSend: true)
+            return
+        }
 
         guard let key = headers["sec-websocket-key"] else {
             send(status: "400 Bad Request", body: "Missing WebSocket Key", contentType: "text/plain", to: client.connection, closeAfterSend: true)

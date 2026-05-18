@@ -18,12 +18,21 @@
     <style>
       :root {
         --color-bg: #0b1220;
+        --color-bg-deep: #020617;
+        --color-glow: rgba(5, 2, 59, 0.6);
+        --color-surface: rgba(0, 0, 0, 0.25);
         --color-text: #e5e7eb;
         --color-text-muted: #c1cbda;
         --color-button: #18223b;
-        --color-button-active: #283861;
+        --color-button-active: #253252;
         --color-border: rgba(71, 85, 105, 0.35);
-        --color-border-accent: rgba(71, 85, 105, 0.5);
+        --color-key-secondary: #71717a;
+        --gradient-touchpad: linear-gradient(180deg, rgba(25, 42, 96, 0.25), var(--color-surface));
+        --gradient-wheel: radial-gradient(circle at 40% 40%, rgba(69, 85, 134, 0.25), var(--color-surface));
+        --shadow-wheel: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 8px 20px rgba(0, 0, 0, 0.4);
+        --shadow-raised: inset 0 2px 4px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3);
+        --color-danger: #f87171;
+        --color-success: #22c55e;
         --radius: 1.25rem;
         --radius-lg: 2.4rem;
         --gap: 0.65rem;
@@ -70,8 +79,8 @@
         flex-direction: column;
         padding: 0;
         position: relative;
-        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-        background: radial-gradient(circle at top, rgba(5, 2, 59, 0.6), transparent 38%), linear-gradient(180deg, var(--color-bg), #020617);
+        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        background: radial-gradient(circle at top, var(--color-glow), transparent 38%), linear-gradient(180deg, var(--color-bg), var(--color-bg-deep));
       }
       body.drawer-open {
         transform: translateX(320px);
@@ -142,9 +151,7 @@
       #tab-wrapper {
         padding: var(--padding);
         border-radius: var(--radius-lg);
-        background: rgba(0, 0, 0, 0.25);
         border: 1px solid var(--color-border);
-        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
         backdrop-filter: blur(10px);
         max-inline-size: 42rem;
         inline-size: 100%;
@@ -160,7 +167,6 @@
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--color-text-muted);
-        transition: all 0.2s ease;
         line-height: 1.2rem;
         border-block-end: 2px solid transparent;
         padding: 0 var(--gap) 0.5rem var(--gap);
@@ -176,29 +182,32 @@
         max-inline-size: 42rem;
         inline-size: 100%;
         border-radius: var(--radius-lg);
-        background: linear-gradient(180deg, rgba(25, 42, 96, 0.25), rgba(0, 0, 0, 0.25));
-        border: 1px solid var(--color-border-accent);
+        background: var(--gradient-touchpad);
+        border: 1px solid var(--color-border);
         overflow: hidden;
         display: flex;
         flex-direction: column;
         align-items: stretch;
-        transition: all 0.3s ease-in-out;
         order: 1;
       }
       #touchpad {
         flex: 1;
         user-select: none;
         touch-action: none;
+        position: relative;
+        overflow: hidden;
       }
 
       #cursorPad {
         touch-action: none;
+        position: relative;
+        overflow: hidden;
       }
       #touchpad.drag-mode {
-        background: rgba(180, 100, 255, 0.08);
+        background: var(--color-button-active);
       }
       #cursorPad.select-mode {
-        background: rgba(100, 150, 255, 0.2);
+        background: var(--color-button-active);
       }
       #touchpad-buttons {
         flex: 0 0 48px;
@@ -207,13 +216,12 @@
         align-items: stretch;
       }
 
-      @container (max-block-size: 82px) {
+      @container (max-block-size: 480px) {
         #touchpad-wrapper:not(:has(~ .keyboard.mini)) #touchpad {
-          flex: 0;
           margin-block-end: 0;
         }
         #touchpad-wrapper:not(:has(~ .keyboard.mini)) #touchpad-buttons {
-          flex: 1;
+          display: none;
         }
       }
       @container (max-block-size: 340px) {
@@ -244,7 +252,6 @@
         background: var(--color-button);
         color: var(--color-text-muted);
         cursor: pointer;
-        transition: inline-size 0.2s ease;
         font-size: 12px;
         position: relative;
       }
@@ -306,11 +313,9 @@
         block-size: 220px;
         margin: 0 auto 0.75rem;
         border-radius: 50%;
-        background: radial-gradient(circle at 40% 40%, rgba(69, 85, 134, 0.25), rgba(0, 0, 0, 0.25));
-        border: 2px solid var(--color-border-accent);
-        box-shadow:
-          inset 0 2px 8px rgba(0, 0, 0, 0.6),
-          0 8px 20px rgba(0, 0, 0, 0.4);
+        background: var(--gradient-wheel);
+        border: 2px solid var(--color-border);
+        box-shadow: var(--shadow-wheel);
       }
       .wheel-button,
       .wheel-center {
@@ -329,7 +334,6 @@
       }
       .wheel-button:active {
         background: var(--color-button-active);
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
       }
       .wheel-center {
         inset-block-start: 50%;
@@ -337,17 +341,12 @@
         transform: translate(-50%, -50%);
         inline-size: 72px;
         block-size: 72px;
-        border: 2px solid rgba(71, 85, 105, 0.6);
+        border: 2px solid var(--color-border);
         background: var(--color-button);
-        box-shadow:
-          inset 0 2px 4px rgba(0, 0, 0, 0.4),
-          0 4px 8px rgba(0, 0, 0, 0.3);
+        box-shadow: var(--shadow-raised);
       }
       .wheel-center:active {
-        background: #0f1729;
-        box-shadow:
-          inset 0 3px 6px rgba(0, 0, 0, 0.6),
-          0 2px 4px rgba(0, 0, 0, 0.3);
+        background: var(--color-button-active);
       }
       .wheel-button-up {
         inset-block-start: 0;
@@ -419,11 +418,13 @@
         inset-inline-start: 0;
         block-size: 100%;
         inline-size: 320px;
-        background: radial-gradient(circle at top, rgba(5, 2, 59, 0.6), transparent 38%), linear-gradient(180deg, var(--color-bg), #020617);
+        background: radial-gradient(circle at top, var(--color-glow), transparent 38%), linear-gradient(180deg, var(--color-bg), var(--color-bg-deep));
         border-inline-end: 1px solid var(--color-border);
         z-index: 101;
         transform: translateX(-100%);
-        overflow-block: auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
         padding: var(--padding);
       }
       body.vertical-rl #settings-drawer {
@@ -433,52 +434,140 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        flex-shrink: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.1rem;
+
+      }
+      #drawer-title {
+        margin-block: 0.5rem;
+      }
+      #drawer-content {
+        flex: 1;
+        min-block-size: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding-block-end: calc(var(--padding) + env(safe-area-inset-bottom, 0px));
+        margin-block-start: 1.2rem;
+      }
+      #drawer-content::-webkit-scrollbar {
+        display: none;
       }
       #drawer-close {
-        inline-size: 36px;
-        block-size: 36px;
-        border-radius: 50%;
+        inline-size: 18px;
         flex-shrink: 0;
+        font-size: 2rem;
+        background-color: transparent;
+        padding: 0;
+        margin: 0;
       }
       .drawer-section {
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
       }
-      .drawer-label {
+      .drawer-sensitivity {
+        margin-block-end: 1.5rem;
+      }
+      .drawer-sensitivity-label {
         display: flex;
         justify-content: space-between;
         font-size: 0.8rem;
         color: var(--color-text-muted);
-        margin-block-start: 0.5rem;
         letter-spacing: 0.08em;
-        text-transform: uppercase;
         line-height: 1.2rem;
-        margin-block-start: 24px;
-        margin-block-end: 12px;
       }
-      .drawer-value {
-        font-variant-numeric: tabular-nums;
+      .drawer-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.85rem 0;
+        border-block-start: 1px solid var(--color-border-subtle);
+      }
+      .drawer-toggle-text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+      .drawer-item-title {
+        font-size: 0.95rem;
         color: var(--color-text);
+      }
+      .drawer-item-subtitle {
+        font-size: 0.75rem;
+        color: var(--color-text-muted);
+      }
+      .drawer-switch {
+        position: relative;
+        inline-size: 52px;
+        block-size: 32px;
+        flex-shrink: 0;
+      }
+      .drawer-switch input {
+        position: absolute;
+        opacity: 0;
+        inset: 0;
+        margin: 0;
+        padding: 0;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+      }
+      .drawer-switch-track {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: var(--color-button);
+        transition: all 0.2s ease;
+      }
+      .drawer-switch-track::after {
+        content: "";
+        position: absolute;
+        inset-block-start: 3px;
+        inset-inline-start: 3px;
+        inline-size: 26px;
+        block-size: 26px;
+        border-radius: 50%;
+        background: var(--color-text);
+        transition: transform 0.2s ease;
+      }
+      .drawer-switch input:checked + .drawer-switch-track {
+        background: var(--color-button-active);
+      }
+      .drawer-switch input:checked + .drawer-switch-track::after {
+        transform: translateX(20px);
+      }
+      .drawer-version {
+        margin-block-start: 1.5rem;
+        font-size: 0.8rem;
+        color: var(--color-text-muted);
+        text-align: center;
+        letter-spacing: 0.06em;
       }
       input[type="range"] {
         -webkit-appearance: none;
         appearance: none;
         inline-size: 100%;
-        block-size: 4px;
-        border-radius: 2px;
+        block-size: 8px;
+        border-radius: 4px;
         background: var(--color-button-active);
         outline: none;
         cursor: pointer;
         border: none;
         padding: 0;
+        margin: 0;
       }
       input[type="range"]::-webkit-slider-thumb {
         -webkit-appearance: none;
         appearance: none;
-        inline-size: 20px;
+        inline-size: 28px;
         block-size: 20px;
-        border-radius: 50%;
+        border-radius: 10px;
         background: var(--color-text);
         cursor: pointer;
       }
@@ -489,7 +578,6 @@
         inline-size: 100%;
         --key-width: calc(calc(min(100vi, 1920px) - 14px) / 14.5);
         --key-height: 48px;
-        transition: all 1s ease-in-out;
         overflow: hidden;
         max-inline-size: 1920px;
         block-size: auto;
@@ -514,8 +602,8 @@
         border-radius: 2px;
         font-size: 12px;
         cursor: pointer;
-        user-select: none;
-        transition: all 0.1s ease;
+        user-select: none;        
+        transition: inline-size 0.2s ease;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -581,7 +669,7 @@
       }
       .keyboard .key.dual .top {
         font-size: 10px;
-        color: #71717a;
+        color: var(--color-key-secondary);
         line-height: 1;
         font-weight: inherit;
       }
@@ -598,7 +686,7 @@
       }
       .keyboard.shift-active .key.dual .bottom {
         font-size: 10px;
-        color: #71717a;
+        color: var(--color-key-secondary);
         font-weight: inherit;
       }
       .keyboard .fn .key.dual .top {
@@ -609,7 +697,7 @@
       .keyboard .fn .key.dual .bottom {
         font-size: 10px;
         font-weight: inherit;
-        color: #71717a;
+        color: var(--color-key-secondary);
       }
       .keyboard .key-label-short {
         display: none;
@@ -628,11 +716,15 @@
       @media screen and (min-width: 820px) and (min-height: 480px) {
         .keyboard {
           --key-height: 72px;
+          gap: 2px
+        }
+        .keyboard .row {
+          gap: 2px
         }
         .keyboard .key {
           font-size: 16px;
-          border-radius: 12px;
-          border: 1px solid #020617;
+          border-radius: 8px;
+          width: calc(var(--key-width) - 2px);
         }
         .keyboard .key.dual {
           padding: 0.75rem;
@@ -653,11 +745,15 @@
       @media screen and (min-width: 1280px) {
         .keyboard {
           --key-height: 84px;
+          gap: 4px
+        }
+        .keyboard .row {
+          gap: 4px
         }
         .keyboard .key {
           font-size: 18px;
-          border-radius: 16px;
-          border: 2px solid #020617;
+          border-radius: 12px;
+          width: calc(var(--key-width) - 4px);
         }
         .keyboard .key.dual {
           padding: 1rem;
@@ -722,7 +818,7 @@
         outline: none;
       }
       #auth-error-message {
-        color: #f87171;
+        color: var(--color-danger);
         font-size: 0.85rem;
       }
       #auth-submit {
@@ -742,6 +838,119 @@
         background: transparent;
         block-size: 3.2rem;
         border: 2px solid var(--color-button);
+      }
+      /* ── CursorPad compass ── */
+      #cursorPad > svg,
+      #cursorPad > .btn-label {
+        transition: opacity 0.12s ease;
+      }
+      #cursorPad.cursor-active > svg,
+      #cursorPad.cursor-active > .btn-label {
+        opacity: 0;
+      }
+      #cursorPad .msi-cross {
+        width: 44px;
+        height: 44px;
+      }
+      /* ── Middle scroll indicator ── */
+      #middleClick {
+        overflow: hidden;
+      }
+      .middle-scroll-indicator {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+        z-index: 5;
+      }
+      .middle-scroll-indicator.visible {
+        opacity: 1;
+      }
+      .msi-cross {
+        position: relative;
+        width: 32px;
+        height: 32px;
+        color: var(--color-text-muted);
+      }
+      .msi-dot {
+        position: absolute;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        opacity: 0.55;
+      }
+      .msi-arrow {
+        position: absolute;
+        width: 0;
+        height: 0;
+        opacity: 0.22;
+        transition: opacity 0.08s ease, color 0.08s ease;
+      }
+      .msi-up {
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-bottom: 7px solid currentColor;
+        top: 0; left: 50%;
+        transform: translateX(-50%);
+      }
+      .msi-down {
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 7px solid currentColor;
+        bottom: 0; left: 50%;
+        transform: translateX(-50%);
+      }
+      .msi-left {
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+        border-right: 7px solid currentColor;
+        top: 50%; left: 0;
+        transform: translateY(-50%);
+      }
+      .msi-right {
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+        border-left: 7px solid currentColor;
+        top: 50%; right: 0;
+        transform: translateY(-50%);
+      }
+      .msi-arrow.active {
+        opacity: 1;
+        color: var(--color-text);
+      }
+      /* ── Touch bubbles ── */
+      .touch-bubble {
+        position: absolute;
+        inline-size: 48px;
+        block-size: 48px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 38% 34%, rgba(180, 200, 255, 0.28), rgba(90, 120, 240, 0.08) 65%);
+        border: 1px solid rgba(160, 185, 255, 0.32);
+        box-shadow: 0 0 12px rgba(100, 140, 255, 0.18);
+        pointer-events: none;
+        z-index: 20;
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+        animation: touch-bubble-in 0.14s cubic-bezier(0.34, 1.5, 0.64, 1) forwards;
+      }
+      .touch-bubble.removing {
+        animation: touch-bubble-out 0.2s ease forwards;
+      }
+      @keyframes touch-bubble-in {
+        from { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+        to   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      }
+      @keyframes touch-bubble-out {
+        from { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        to   { transform: translate(-50%, -50%) scale(0.35); opacity: 0; }
       }
     </style>
   </head>
@@ -879,11 +1088,13 @@
       </symbol>
       <symbol id="icon-cursorpad" viewBox="0 0 28 20">
         <rect height="20" opacity="0" width="28" x="0" y="0" />
-        <path d="m11.4 19.3h5.3q0.7 0 0.7-0.6 0-0.6-0.7-0.6h-2v-16.9h2c0.5 0 0.7-0.2 0.7-0.6 0-0.4-0.2-0.6-0.7-0.6h-5.3q-0.7 0-0.8 0.6 0.1 0.6 0.8 0.6h1.9v16.9h-1.9q-0.7 0-0.8 0.6 0.1 0.6 0.8 0.6z"
+        <path
+          d="m11.4 19.3h5.3q0.7 0 0.7-0.6 0-0.6-0.7-0.6h-2v-16.9h2c0.5 0 0.7-0.2 0.7-0.6 0-0.4-0.2-0.6-0.7-0.6h-5.3q-0.7 0-0.8 0.6 0.1 0.6 0.8 0.6h1.9v16.9h-1.9q-0.7 0-0.8 0.6 0.1 0.6 0.8 0.6z"
           fill="currentColor"
           fill-opacity="0.85"
         />
-        <path d="m22.4 13.8c0.4 0.4 0.9 0.4 1.3-0.1l3-3c0.4-0.4 0.4-1 0-1.4l-3-3.1c-0.5-0.4-0.9-0.4-1.3 0-0.4 0.5-0.5 0.9 0 1.4l2.5 2.4-2.5 2.5c-0.4 0.4-0.4 0.8 0 1.3zm-16.7 0c0.4-0.4 0.4-0.9 0-1.3l-2.5-2.5 2.4-2.4c0.4-0.5 0.4-0.9 0-1.3-0.4-0.4-0.9-0.4-1.3 0l-3 3c-0.4 0.4-0.4 1 0 1.4l3 3.1c0.5 0.4 1 0.4 1.4 0z"
+        <path
+          d="m22.4 13.8c0.4 0.4 0.9 0.4 1.3-0.1l3-3c0.4-0.4 0.4-1 0-1.4l-3-3.1c-0.5-0.4-0.9-0.4-1.3 0-0.4 0.5-0.5 0.9 0 1.4l2.5 2.4-2.5 2.5c-0.4 0.4-0.4 0.8 0 1.3zm-16.7 0c0.4-0.4 0.4-0.9 0-1.3l-2.5-2.5 2.4-2.4c0.4-0.5 0.4-0.9 0-1.3-0.4-0.4-0.9-0.4-1.3 0l-3 3c-0.4 0.4-0.4 1 0 1.4l3 3.1c0.5 0.4 1 0.4 1.4 0z"
           fill="currentColor"
           fill-opacity="0.85"
         />
@@ -1659,7 +1870,7 @@
             <span class="btn-label">YouTube</span>
           </button>
           <div class="col-3">
-            <input type="text" placeholder="App name, bundle id or URL" id="openInput"/>
+            <input type="text" placeholder="App name, bundle id or URL" id="openInput" />
           </div>
           <button id="openButton">Open</button>
         </div>
@@ -2051,29 +2262,97 @@
     <div id="drawer-overlay" class="hidden"></div>
     <aside id="settings-drawer">
       <div id="drawer-header">
-        <h1 id="drawer-title">Settings</h1>
+        <h4 id="drawer-title">Settings</h4>
         <button id="drawer-close">
-          <svg style="inline-size: 20px; block-size: 20px">
-            <use href="#icon-close"></use>
-          </svg>
+          ×
         </button>
       </div>
-      <div class="drawer-section">
-        <label class="drawer-label" for="sensitivity-touchpad">
-          <span>Touchpad</span>
-          <span class="drawer-value" id="val-touchpad">1x</span>
-        </label>
-        <input type="range" id="sensitivity-touchpad" min="0.25" max="4" step="0.25" value="1" />
-        <label class="drawer-label" for="sensitivity-scroll">
-          <span>Scroll</span>
-          <span class="drawer-value" id="val-scroll">1x</span>
-        </label>
-        <input type="range" id="sensitivity-scroll" min="0.25" max="4" step="0.25" value="1" />
-        <label class="drawer-label" for="sensitivity-cursorpad">
-          <span>Cursorpad</span>
-          <span class="drawer-value" id="val-cursorpad">1x</span>
-        </label>
-        <input type="range" id="sensitivity-cursorpad" min="0.25" max="4" step="0.25" value="1" />
+      <div id="drawer-content">
+        <div class="drawer-section">
+          <span class="drawer-item-title">Sensitivity</span>
+          <div class="drawer-sensitivity">
+            <label class="drawer-sensitivity-label" for="sensitivity-touchpad">
+              <span class="drawer-item-subtitle">Trackpad</span>
+              <span class="drawer-item-subtitle" id="val-touchpad">1x</span>
+            </label>
+            <input type="range" id="sensitivity-touchpad" min="0.25" max="4" step="0.25" value="1" />
+          </div>
+          <div class="drawer-sensitivity">
+            <label class="drawer-sensitivity-label" for="sensitivity-scroll">
+              <span class="drawer-item-subtitle">Scroll</span>
+              <span class="drawer-item-subtitle" id="val-scroll">1x</span>
+            </label>
+            <input type="range" id="sensitivity-scroll" min="0.25" max="4" step="0.25" value="1" />
+          </div>
+          <div class="drawer-sensitivity">
+            <label class="drawer-sensitivity-label" for="sensitivity-cursorpad">
+              <span class="drawer-item-subtitle">Cursorpad</span>
+              <span class="drawer-item-subtitle" id="val-cursorpad">1x</span>
+            </label>
+            <input type="range" id="sensitivity-cursorpad" min="0.25" max="4" step="0.25" value="1" />
+          </div>
+          <label class="drawer-toggle" for="toggle-trackpad-buttons">
+            <span class="drawer-toggle-text">
+              <span class="drawer-item-title">Trackpad Buttons</span>
+              <span class="drawer-item-subtitle">Show left, middle and right click buttons</span>
+            </span>
+            <span class="drawer-switch">
+              <input type="checkbox" id="toggle-trackpad-buttons" />
+              <span class="drawer-switch-track"></span>
+            </span>
+          </label>
+          <label class="drawer-toggle" for="toggle-middle-click">
+            <span class="drawer-toggle-text">
+              <span class="drawer-item-title">Middle Click Button</span>
+              <span class="drawer-item-subtitle">Show middle button in the trackpad</span>
+            </span>
+            <span class="drawer-switch">
+              <input type="checkbox" id="toggle-middle-click" />
+              <span class="drawer-switch-track"></span>
+            </span>
+          </label>
+          <label class="drawer-toggle" for="toggle-horizontal-scroll">
+            <span class="drawer-toggle-text">
+              <span class="drawer-item-title">Reverse Horizontal Scroll</span>
+              <span class="drawer-item-subtitle">Invert left and right scrolling</span>
+            </span>
+            <span class="drawer-switch">
+              <input type="checkbox" id="toggle-horizontal-scroll" />
+              <span class="drawer-switch-track"></span>
+            </span>
+          </label>
+          <label class="drawer-toggle" for="toggle-vertical-scroll">
+            <span class="drawer-toggle-text">
+              <span class="drawer-item-title">Reverse Vertical Scroll</span>
+              <span class="drawer-item-subtitle">Invert up and down scrolling</span>
+            </span>
+            <span class="drawer-switch">
+              <input type="checkbox" id="toggle-vertical-scroll" />
+              <span class="drawer-switch-track"></span>
+            </span>
+          </label>
+          <label class="drawer-toggle" for="toggle-vibration-feedback">
+            <span class="drawer-toggle-text">
+              <span class="drawer-item-title">Vibration</span>
+              <span class="drawer-item-subtitle">Use haptics when sending commands</span>
+            </span>
+            <span class="drawer-switch">
+              <input type="checkbox" id="toggle-vibration-feedback" />
+              <span class="drawer-switch-track"></span>
+            </span>
+          </label>
+          <label class="drawer-toggle" for="toggle-sound-feedback">
+            <span class="drawer-toggle-text">
+              <span class="drawer-item-title">Sound</span>
+              <span class="drawer-item-subtitle">Play a short click for actions</span>
+            </span>
+            <span class="drawer-switch">
+              <input type="checkbox" id="toggle-sound-feedback" />
+              <span class="drawer-switch-track"></span>
+            </span>
+          </label>
+        </div>
+        <p class="drawer-version" id="drawer-version"></p>
       </div>
     </aside>
     <div id="auth-modal" class="hidden">
@@ -2157,27 +2436,48 @@
       const hideAuthModal = () => {
         document.getElementById("auth-modal").classList.add("hidden");
       };
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const readBooleanSetting = (key, fallback = true) => {
+        const stored = localStorage.getItem(key);
+        if (stored === null) return fallback;
+        return stored === "1";
+      };
+      let audioCtx;
+      const getAudioContext = () => {
+        if (audioCtx) return audioCtx;
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return null;
+        audioCtx = new AudioContextClass();
+        return audioCtx;
+      };
 
       const inputFeedback = () => {
-        navigator?.vibrate?.(15);
-        if (audioCtx.state === "suspended") audioCtx.resume();
-        const now = audioCtx.currentTime;
-        const osc = audioCtx.createOscillator();
+        if (vibrationFeedbackEnabled) {
+          navigator?.vibrate?.(15);
+        }
+
+        if (!soundFeedbackEnabled) return;
+
+        const context = getAudioContext();
+        if (!context) return;
+        if (context.state === "suspended") context.resume();
+        const now = context.currentTime;
+        const osc = context.createOscillator();
         osc.type = "sine";
         osc.frequency.setValueAtTime(600, now);
-        const gain = audioCtx.createGain();
+        const gain = context.createGain();
         gain.gain.setValueAtTime(0.0001, now);
         gain.gain.exponentialRampToValueAtTime(0.2, now + 0.001);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
         osc.connect(gain);
-        gain.connect(audioCtx.destination);
+        gain.connect(context.destination);
         osc.start(now);
         osc.stop(now + 0.01);
       };
 
       const resumeAudio = () => {
-        if (audioCtx.state === "suspended") audioCtx.resume();
+        if (!soundFeedbackEnabled) return;
+        const context = getAudioContext();
+        if (context?.state === "suspended") context.resume();
       };
 
       document.addEventListener("touchstart", resumeAudio, { passive: true });
@@ -2197,6 +2497,12 @@
       let touchpadSensitivity = parseFloat(localStorage.getItem("sens-touchpad") ?? "1");
       let scrollSensitivity = parseFloat(localStorage.getItem("sens-scroll") ?? "1");
       let cursorpadSensitivity = parseFloat(localStorage.getItem("sens-cursorpad") ?? "1");
+      let vibrationFeedbackEnabled = readBooleanSetting("feedback-vibration", true);
+      let soundFeedbackEnabled = readBooleanSetting("feedback-sound", true);
+      let reverseHorizontalScroll = readBooleanSetting("scroll-reverse-horizontal", false);
+      let reverseVerticalScroll = readBooleanSetting("scroll-reverse-vertical", false);
+      let middleClickEnabled = readBooleanSetting("mouse-middle-click", true);
+      let trackpadButtonsEnabled = readBooleanSetting("trackpad-buttons", true);
 
       /* ====================================
        * Connection handling
@@ -2208,9 +2514,77 @@
       const MAX_RECONNECT = 5;
       const isDenied = () => sessionStorage.getItem("icontrol-denied") === "1";
       const connectWebSocket = () => {
-        status.style.color = "#22c55e";
-        hideAuthModal();
-        return Promise.resolve();
+        if (isDenied()) return Promise.resolve();
+        if (connectingPromise) return connectingPromise;
+        connectingPromise = new Promise((resolve, reject) => {
+          socket = new WebSocket(`ws://${location.host}/`);
+
+          socket.addEventListener("open", () => {
+            status.style.setProperty("color", "var(--color-success)");
+            connectingPromise = null;
+            reconnectAttempts = 0;
+            resolve();
+            const token = sessionStorage.getItem("icontrol-session") || localStorage.getItem("icontrol-token") || "";
+            lastSentToken = token;
+            socket.send(JSON.stringify({ type: "auth", token, device: getDeviceName() }));
+          });
+
+          socket.addEventListener("close", () => {
+            status.style.setProperty("color", "var(--color-danger)");
+            connectingPromise = null;
+            if (!isDenied() && reconnectAttempts < MAX_RECONNECT) {
+              reconnectAttempts++;
+              setTimeout(() => connectWebSocket(), 500);
+            }
+          });
+
+          socket.addEventListener("error", () => {
+            status.style.setProperty("color", "var(--color-danger)");
+            connectingPromise = null;
+            reject();
+          });
+          socket.addEventListener("message", (event) => {
+            let payload;
+            try {
+              payload = JSON.parse(event.data);
+            } catch {
+              return;
+            }
+            if (payload.type === "state") {
+              if (payload.volume !== undefined) {
+                const volumeSlider = document.querySelector('.slider[data-control="setVolume"]');
+                if (volumeSlider) {
+                  volumeSlider.dataset.value = payload.volume;
+                  const fill = volumeSlider.querySelector(".slider-fill");
+                  if (fill) {
+                    fill.style.height = payload.volume + "%";
+                  }
+                }
+              }
+            } else if (payload.type === "auth:approved") {
+              if (payload.session) {
+                sessionStorage.setItem("icontrol-session", payload.token);
+              } else {
+                localStorage.setItem("icontrol-token", payload.token);
+              }
+              hideAuthModal();
+            } else if (payload.type === "auth:rejected") {
+              if (payload.reason === "denied") {
+                sessionStorage.setItem("icontrol-denied", "1");
+                socket.close();
+                showAuthModal(true);
+              } else {
+                showAuthModal(false, lastSentToken ? "Invalid token. Please try again." : "");
+              }
+            } else if (payload.type === "auth:open") {
+              sessionStorage.removeItem("icontrol-session");
+              localStorage.removeItem("icontrol-token");
+              hideAuthModal();
+            }
+          });
+        });
+
+        return connectingPromise;
       };
 
       if (isDenied()) {
@@ -2222,7 +2596,28 @@
       window.addEventListener("visibilitychange", () => document.visibilityState === "visible" && checkAndReconnectWebSocket());
 
       const send = (payload) => {
-        if (!["move", "dragMove", "scroll"].includes(payload.type)) inputFeedback();
+        // console.log("Sending command:", payload);
+        const sendAction = () => {
+          if (!["move", "dragMove", "scroll"].includes(payload.type)) inputFeedback();
+          socket.send(JSON.stringify(payload));
+        };
+        if (socket?.readyState === WebSocket.OPEN) {
+          try {
+            sendAction();
+          } catch (error) {
+            // Zombie OPEN scenario
+            socket?.close();
+            connectWebSocket().then(sendAction);
+          }
+        } else {
+          connectWebSocket().then(sendAction);
+        }
+      };
+
+      const sendScroll = ({ dx = 0, dy = 0 }) => {
+        const adjustedDx = dx * scrollSensitivity * (reverseHorizontalScroll ? -1 : 1);
+        const adjustedDy = dy * scrollSensitivity * (reverseVerticalScroll ? -1 : 1);
+        send({ type: "scroll", dx: adjustedDx, dy: adjustedDy });
       };
 
       /* ====================================
@@ -2745,7 +3140,49 @@
         };
       };
 
+      // ── Touch bubble feedback ────────────────────────────────────────────────────
+      const attachTouchBubbles = (element) => {
+        const active = new Map();
+
+        const place = (bubble, clientX, clientY) => {
+          const r = element.getBoundingClientRect();
+          bubble.style.left = (clientX - r.left) + "px";
+          bubble.style.top  = (clientY - r.top)  + "px";
+        };
+
+        element.addEventListener("touchstart", (e) => {
+          for (const t of e.changedTouches) {
+            const b = document.createElement("div");
+            b.className = "touch-bubble";
+            place(b, t.clientX, t.clientY);
+            element.appendChild(b);
+            active.set(t.identifier, b);
+          }
+        }, { passive: true });
+
+        element.addEventListener("touchmove", (e) => {
+          for (const t of e.changedTouches) {
+            const b = active.get(t.identifier);
+            if (b) place(b, t.clientX, t.clientY);
+          }
+        }, { passive: true });
+
+        const release = (changedTouches) => {
+          for (const t of changedTouches) {
+            const b = active.get(t.identifier);
+            if (!b) continue;
+            active.delete(t.identifier);
+            b.classList.add("removing");
+            b.addEventListener("animationend", () => b.remove(), { once: true });
+          }
+        };
+
+        element.addEventListener("touchend",    (e) => release(e.changedTouches), { passive: true });
+        element.addEventListener("touchcancel", (e) => release(e.changedTouches), { passive: true });
+      };
+
       const touchpadEl = document.getElementById("touchpad");
+      attachTouchBubbles(touchpadEl);
       touchTracker(
         touchpadEl,
         {
@@ -2759,7 +3196,7 @@
               send({ type: "move", dx: dx * touchpadSensitivity, dy: dy * touchpadSensitivity });
               break;
             case "twoFingerMove":
-              send({ type: "scroll", dx: dx * scrollSensitivity, dy: dy * scrollSensitivity });
+              sendScroll({ dx, dy });
               break;
             case "tap": {
               const f = getActiveFlags();
@@ -2791,6 +3228,34 @@
       );
 
       const middleClickEl = document.getElementById("middleClick");
+
+      // Build the compass indicator
+      const msiEl = document.createElement("div");
+      msiEl.className = "middle-scroll-indicator";
+      msiEl.innerHTML = `<div class="msi-cross">
+        <div class="msi-arrow msi-up"></div>
+        <div class="msi-arrow msi-down"></div>
+        <div class="msi-arrow msi-left"></div>
+        <div class="msi-arrow msi-right"></div>
+        <div class="msi-dot"></div>
+      </div>`;
+      middleClickEl.appendChild(msiEl);
+
+      const msiArrows = {
+        up:    msiEl.querySelector(".msi-up"),
+        down:  msiEl.querySelector(".msi-down"),
+        left:  msiEl.querySelector(".msi-left"),
+        right: msiEl.querySelector(".msi-right"),
+      };
+
+      const msiSetDirection = (dir) => {
+        for (const [k, a] of Object.entries(msiArrows)) a.classList.toggle("active", k === dir);
+      };
+
+      middleClickEl.addEventListener("touchstart",  () => msiEl.classList.add("visible"),    { passive: true });
+      middleClickEl.addEventListener("touchend",    () => { msiEl.classList.remove("visible"); msiSetDirection(null); }, { passive: true });
+      middleClickEl.addEventListener("touchcancel", () => { msiEl.classList.remove("visible"); msiSetDirection(null); }, { passive: true });
+
       touchTracker(
         middleClickEl,
         {
@@ -2804,17 +3269,52 @@
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist === 0) return;
           const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-          const isCardinal =
-            Math.abs(angle) < 22.5 ||
-            Math.abs(angle - 90) < 22.5 ||
-            Math.abs(angle + 90) < 22.5 ||
-            Math.abs(Math.abs(angle) - 180) < 22.5;
-          if (!isCardinal) return;
-          send({ type: "scroll", dx: dx * scrollSensitivity, dy: dy * scrollSensitivity });
+          const absAngle = Math.abs(angle);
+          const isCardinal = absAngle < 22.5 || Math.abs(angle - 90) < 22.5 || Math.abs(angle + 90) < 22.5 || Math.abs(absAngle - 180) < 22.5;
+
+          if (isCardinal) {
+            if (absAngle < 22.5 || absAngle > 157.5)       msiSetDirection(dx > 0 ? "right" : "left");
+            else if (angle > 0)                             msiSetDirection("down");
+            else                                            msiSetDirection("up");
+            sendScroll({ dx, dy });
+          } else {
+            msiSetDirection(null);
+          }
         },
       );
 
       const cursorPadEl = document.getElementById("cursorPad");
+
+      // Build cursorPad compass indicator (reuses .msi-* CSS)
+      const cpiEl = document.createElement("div");
+      cpiEl.className = "middle-scroll-indicator";
+      cpiEl.innerHTML = `<div class="msi-cross">
+        <div class="msi-arrow msi-up"></div>
+        <div class="msi-arrow msi-down"></div>
+        <div class="msi-arrow msi-left"></div>
+        <div class="msi-arrow msi-right"></div>
+        <div class="msi-dot"></div>
+      </div>`;
+      cursorPadEl.appendChild(cpiEl);
+
+      const cpiArrows = {
+        up:    cpiEl.querySelector(".msi-up"),
+        down:  cpiEl.querySelector(".msi-down"),
+        left:  cpiEl.querySelector(".msi-left"),
+        right: cpiEl.querySelector(".msi-right"),
+      };
+
+      const cpiSetDirection = (dir) => {
+        for (const [k, a] of Object.entries(cpiArrows)) a.classList.toggle("active", k === dir);
+      };
+
+      const cpiShow = () => { cursorPadEl.classList.add("cursor-active"); cpiEl.classList.add("visible"); };
+      const cpiHide = () => { cursorPadEl.classList.remove("cursor-active"); cpiEl.classList.remove("visible"); cpiSetDirection(null); };
+
+      cursorPadEl.addEventListener("touchstart",  cpiShow, { passive: true });
+      cursorPadEl.addEventListener("touchend",    cpiHide, { passive: true });
+      cursorPadEl.addEventListener("touchcancel", cpiHide, { passive: true });
+
       const BASE_PIXELS_PER_KEY = 12;
 
       let cursorAccX = 0;
@@ -2838,11 +3338,10 @@
           switch (type) {
             case "move":
             case "dragMove": {
+              cpiSetDirection(direction ?? null);
               const threshold = BASE_PIXELS_PER_KEY / cursorpadSensitivity;
               cursorAccX += dx;
               cursorAccY += dy;
-
-              const key = type === "dragMove" ? `shift+${direction}` : direction;
 
               while (Math.abs(cursorAccX) >= threshold) {
                 send({ type: "key", key: cursorAccX > 0 ? (type === "dragMove" ? "shift+right" : "right") : type === "dragMove" ? "shift+left" : "left" });
@@ -2856,10 +3355,12 @@
             }
             case "dragStart":
               resetCursorAcc();
+              cpiSetDirection(null);
               cursorPadEl.classList.add("select-mode");
               break;
             case "dragEnd":
               resetCursorAcc();
+              cpiSetDirection(null);
               cursorPadEl.classList.remove("select-mode");
               break;
           }
@@ -3009,7 +3510,6 @@
               break;
             case "caps":
               kb.caps = !kb.caps;
-              console.log(kb);
               break;
             case "fn":
               kb.fn = !kb.fn;
@@ -3142,6 +3642,99 @@
         });
       });
 
+      const touchpadButtonsEl = document.getElementById("touchpad-buttons");
+
+      const toggleSettings = [
+        {
+          id: "toggle-trackpad-buttons",
+          key: "trackpad-buttons",
+          get: () => trackpadButtonsEnabled,
+          set: (value) => {
+            trackpadButtonsEnabled = value;
+            if (value) {
+              touchpadButtonsEl.classList.remove("hidden");
+              middleClickEnabled = true;
+              middleClickEl.classList.remove("hidden");
+              localStorage.setItem("mouse-middle-click", "1");
+              document.getElementById("toggle-middle-click").checked = true;
+            } else {
+              touchpadButtonsEl.classList.add("hidden");
+              middleClickEnabled = false;
+              middleClickEl.classList.add("hidden");
+              localStorage.setItem("mouse-middle-click", "0");
+              document.getElementById("toggle-middle-click").checked = false;
+            }
+          },
+        },
+        {
+          id: "toggle-middle-click",
+          key: "mouse-middle-click",
+          get: () => middleClickEnabled,
+          set: (value) => {
+            middleClickEnabled = value;
+            value
+              ? middleClickEl.classList.remove("hidden")
+              : middleClickEl.classList.add("hidden")
+          },
+        },
+        {
+          id: "toggle-horizontal-scroll",
+          key: "scroll-reverse-horizontal",
+          get: () => reverseHorizontalScroll,
+          set: (value) => {
+            reverseHorizontalScroll = value;
+          },
+        },
+        {
+          id: "toggle-vertical-scroll",
+          key: "scroll-reverse-vertical",
+          get: () => reverseVerticalScroll,
+          set: (value) => {
+            reverseVerticalScroll = value;
+          },
+        },
+        {
+          id: "toggle-vibration-feedback",
+          key: "feedback-vibration",
+          get: () => vibrationFeedbackEnabled,
+          set: (value) => {
+            vibrationFeedbackEnabled = value;
+          },
+        },
+        {
+          id: "toggle-sound-feedback",
+          key: "feedback-sound",
+          get: () => soundFeedbackEnabled,
+          set: (value) => {
+            soundFeedbackEnabled = value;
+            if (value) {
+              resumeAudio();
+            }
+          },
+        },
+      ];
+
+      toggleSettings.forEach(({ id, key, get, set }) => {
+        const input = document.getElementById(id);
+        input.checked = get();
+        input.addEventListener("change", () => {
+          const value = input.checked;
+          set(value);
+          localStorage.setItem(key, value ? "1" : "0");
+        });
+      });
+
+      if (!trackpadButtonsEnabled) {
+        touchpadButtonsEl.classList.add("hidden");
+        middleClickEl.classList.add("hidden");
+      } else if (!middleClickEnabled) {
+        middleClickEl.classList.add("hidden");
+      }
+
+      const versionMetaContent = document.querySelector('meta[name="version"]')?.content?.trim();
+      const drawerVersion = document.getElementById("drawer-version");
+      drawerVersion.textContent = versionMetaContent ? `v${versionMetaContent}` : "";
+
       /* ── OTP digit box behaviour ── */
       (function () {
         const digits = Array.from(document.querySelectorAll("#auth-token-input .otp-digit"));
@@ -3201,7 +3794,10 @@
       /* ── Auth modal submit ── */
       document.getElementById("auth-submit").addEventListener("click", () => {
         const digits = document.querySelectorAll("#auth-token-input .otp-digit");
-        const enteredToken = Array.from(digits).map((d) => d.value).join("").toUpperCase();
+        const enteredToken = Array.from(digits)
+          .map((d) => d.value)
+          .join("")
+          .toUpperCase();
         if (enteredToken.length < 4) return;
         lastSentToken = enteredToken;
         send({ type: "auth", token: enteredToken, device: getDeviceName() });
