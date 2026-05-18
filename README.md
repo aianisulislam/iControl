@@ -199,6 +199,10 @@ No authentication. Any device on the network connects immediately. Switching to 
 **Regenerate Token** (menu bar, Secure mode only)
 Issues a new token and clears all approved sessions. Use this to revoke access from all previously connected devices at once.
 
+### Known limitation
+
+WebSocket traffic is unencrypted. On shared or untrusted networks, keystrokes are visible to anyone capturing packets on the same segment. On a home or trusted office network this is not a practical concern. Avoid using iControl on public or open Wi-Fi.
+
 ---
 
 ## Known limitations
