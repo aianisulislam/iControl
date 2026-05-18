@@ -113,11 +113,12 @@ Browser (any device) ──WebSocket──▶ Swift HTTP/WS server ──▶ mac
 
 ## Quick start
 
-1. Download and open `iControl.app`  
-2. **Bypass Gatekeeper** (see below — required on first launch)  
-3. Scan the QR code from the menu bar  
-4. Grant Accessibility permission  
-5. Done  
+1. Download `iControl.dmg` from the [latest release](../../releases/latest)  
+2. Open the DMG and drag `iControl.app` to your Applications folder  
+3. **Bypass Gatekeeper** on first launch (see below)  
+4. Scan the QR code from the menu bar  
+5. Grant Accessibility permission  
+6. Done  
 
 Your Mac is now always ready.
 
@@ -146,7 +147,7 @@ You only need to do this once. After the first launch, macOS remembers the excep
 
 **Option C — Remove the quarantine flag (command line)**
 ```bash
-xattr -d com.apple.quarantine /path/to/iControl.app
+xattr -d com.apple.quarantine /Applications/iControl.app
 ```
 
 > **Why isn't it notarized?** Notarization requires an Apple Developer account ($99/year). iControl is a free, open-source tool with no revenue. The source code is fully open — if you prefer, build it yourself from source in Xcode instead of using the downloaded binary.
@@ -210,8 +211,6 @@ iControl simulates input via macOS user-space APIs (`CGEvent`). Some system beha
 - **Password fields** — macOS blocks input simulation when secure input mode is active  
 
 These are platform constraints, not bugs. They affect all software-based input simulation tools, not just iControl.
-
----
 
 ---
 
@@ -287,7 +286,7 @@ You control the system.**
 
 ## Support
 
-iControl is free, open source, offilne and has no ads, accounts, or subscriptions.
+iControl is free, open source, offline and has no ads, accounts, or subscriptions.
 If it saves you time or you just want to say thanks:
 
 - **International:** [paypal.me/aianisulislam](https://paypal.me/aianisulislam)

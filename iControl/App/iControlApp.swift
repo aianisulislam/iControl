@@ -41,7 +41,7 @@ struct iControlApp: App {
     private let server: HTTPServer
     private let authContext: AuthContext
     @AppStorage("launchAtLogin") private var launchAtLogin = false
-    @AppStorage("authMode") private var authMode = "open"
+    @AppStorage("authMode") private var authMode = "secure"
     @AppStorage("authToken") private var authToken = ""
     @State private var showSecuritySubmenu = false
 
@@ -61,9 +61,9 @@ struct iControlApp: App {
 
         // Default to secure mode on first launch
         if UserDefaults.standard.object(forKey: "authMode") == nil {
-            UserDefaults.standard.set("open", forKey: "authMode")
+            UserDefaults.standard.set("secure", forKey: "authMode")
         }
-        let mode = UserDefaults.standard.string(forKey: "authMode") ?? "open"
+        let mode = UserDefaults.standard.string(forKey: "authMode") ?? "secure"
 
         let ctx = AuthContext(mode: mode, token: token)
         authContext = ctx
