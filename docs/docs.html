@@ -838,7 +838,7 @@
 
       <!-- ── Security ── -->
       <span class="section-anchor" id="secure-mode"></span>
-      <h2>Secure mode</h2>
+      <h2>Secure mode <span style="font-family:var(--font-mono);font-size:0.65rem;font-weight:400;color:var(--accent);background:var(--accent-glow);border:1px solid rgba(59,130,246,0.25);padding:0.15em 0.5em;border-radius:0.25rem;vertical-align:middle;letter-spacing:0.06em;">DEFAULT</span></h2>
       <p>In Secure mode, every device must authenticate before it can send input. Two paths exist:</p>
 
       <h3>Token — for your own devices</h3>
@@ -854,9 +854,9 @@
 
       <!-- ── Open mode ── -->
       <span class="section-anchor" id="open-mode"></span>
-      <h2>Open mode <span style="font-family:var(--font-mono);font-size:0.65rem;font-weight:400;color:var(--accent);background:var(--accent-glow);border:1px solid rgba(59,130,246,0.25);padding:0.15em 0.5em;border-radius:0.25rem;vertical-align:middle;letter-spacing:0.06em;">DEFAULT</span></h2>
-      <p>iControl starts in Open mode by default. Any device on your network connects immediately with no authentication — useful for personal use where convenience matters more than access control.</p>
-      <p>Switching to Secure mode requires Touch ID or your Mac login password. Switching back to Open mode also requires authentication. <strong>Any time you switch modes or regenerate the token, all currently connected devices are disconnected</strong> and must reconnect before sending input again.</p>
+      <h2>Open mode</h2>
+      <p>Any device on your network connects immediately with no authentication — useful for personal use where convenience matters more than access control.</p>
+      <p>Switching to Open mode requires Touch ID or your Mac login password. Switching back to Secure is instant — a new token is generated automatically. <strong>Any time you switch modes or regenerate the token, all currently connected devices are disconnected</strong> and must reconnect before sending input again.</p>
 
       <!-- ── Managing ── -->
       <span class="section-anchor" id="managing"></span>
@@ -899,6 +899,7 @@
       <div class="limitation"><div class="limitation-dot"></div><p><strong>Dock auto-hide</strong> — same mechanism as hot corners.</p></div>
       <div class="limitation"><div class="limitation-dot"></div><p><strong>Password fields</strong> — macOS blocks all software input simulation when a password field is focused. This is a built-in security feature. Type passwords directly on your Mac.</p></div>
       <div class="limitation"><div class="limitation-dot"></div><p><strong>Brightness keys</strong> — F1 and F2 affect the built-in display only. External displays are not affected.</p></div>
+      <div class="limitation"><div class="limitation-dot"></div><p><strong>Unencrypted traffic</strong> — WebSocket connections use plain HTTP, not HTTPS. On shared or untrusted networks, keystrokes are visible to anyone capturing packets on the same segment. On a home or trusted office network this is not a practical concern. Avoid using iControl on public or open Wi-Fi.</p></div>
 
       <div class="note">
         <span class="note-icon">ℹ</span>
