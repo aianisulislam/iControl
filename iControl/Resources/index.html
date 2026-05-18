@@ -839,6 +839,93 @@
         block-size: 3.2rem;
         border: 2px solid var(--color-button);
       }
+      /* ── CursorPad compass ── */
+      #cursorPad > svg,
+      #cursorPad > .btn-label {
+        transition: opacity 0.12s ease;
+      }
+      #cursorPad.cursor-active > svg,
+      #cursorPad.cursor-active > .btn-label {
+        opacity: 0;
+      }
+      #cursorPad .msi-cross {
+        width: 44px;
+        height: 44px;
+      }
+      /* ── Middle scroll indicator ── */
+      #middleClick {
+        overflow: hidden;
+      }
+      .middle-scroll-indicator {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+        z-index: 5;
+      }
+      .middle-scroll-indicator.visible {
+        opacity: 1;
+      }
+      .msi-cross {
+        position: relative;
+        width: 32px;
+        height: 32px;
+        color: var(--color-text-muted);
+      }
+      .msi-dot {
+        position: absolute;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        opacity: 0.55;
+      }
+      .msi-arrow {
+        position: absolute;
+        width: 0;
+        height: 0;
+        opacity: 0.22;
+        transition: opacity 0.08s ease, color 0.08s ease;
+      }
+      .msi-up {
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-bottom: 7px solid currentColor;
+        top: 0; left: 50%;
+        transform: translateX(-50%);
+      }
+      .msi-down {
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 7px solid currentColor;
+        bottom: 0; left: 50%;
+        transform: translateX(-50%);
+      }
+      .msi-left {
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+        border-right: 7px solid currentColor;
+        top: 50%; left: 0;
+        transform: translateY(-50%);
+      }
+      .msi-right {
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+        border-left: 7px solid currentColor;
+        top: 50%; right: 0;
+        transform: translateY(-50%);
+      }
+      .msi-arrow.active {
+        opacity: 1;
+        color: var(--color-text);
+      }
       /* ── Touch bubbles ── */
       .touch-bubble {
         position: absolute;
@@ -2509,7 +2596,7 @@
       window.addEventListener("visibilitychange", () => document.visibilityState === "visible" && checkAndReconnectWebSocket());
 
       const send = (payload) => {
-        console.log("Sending command:", payload);
+        // console.log("Sending command:", payload);
         const sendAction = () => {
           if (!["move", "dragMove", "scroll"].includes(payload.type)) inputFeedback();
           socket.send(JSON.stringify(payload));
@@ -3141,6 +3228,34 @@
       );
 
       const middleClickEl = document.getElementById("middleClick");
+
+      // Build the compass indicator
+      const msiEl = document.createElement("div");
+      msiEl.className = "middle-scroll-indicator";
+      msiEl.innerHTML = `<div class="msi-cross">
+        <div class="msi-arrow msi-up"></div>
+        <div class="msi-arrow msi-down"></div>
+        <div class="msi-arrow msi-left"></div>
+        <div class="msi-arrow msi-right"></div>
+        <div class="msi-dot"></div>
+      </div>`;
+      middleClickEl.appendChild(msiEl);
+
+      const msiArrows = {
+        up:    msiEl.querySelector(".msi-up"),
+        down:  msiEl.querySelector(".msi-down"),
+        left:  msiEl.querySelector(".msi-left"),
+        right: msiEl.querySelector(".msi-right"),
+      };
+
+      const msiSetDirection = (dir) => {
+        for (const [k, a] of Object.entries(msiArrows)) a.classList.toggle("active", k === dir);
+      };
+
+      middleClickEl.addEventListener("touchstart",  () => msiEl.classList.add("visible"),    { passive: true });
+      middleClickEl.addEventListener("touchend",    () => { msiEl.classList.remove("visible"); msiSetDirection(null); }, { passive: true });
+      middleClickEl.addEventListener("touchcancel", () => { msiEl.classList.remove("visible"); msiSetDirection(null); }, { passive: true });
+
       touchTracker(
         middleClickEl,
         {
@@ -3154,14 +3269,52 @@
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist === 0) return;
           const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-          const isCardinal = Math.abs(angle) < 22.5 || Math.abs(angle - 90) < 22.5 || Math.abs(angle + 90) < 22.5 || Math.abs(Math.abs(angle) - 180) < 22.5;
-          if (!isCardinal) return;
-          sendScroll({ dx, dy });
+          const absAngle = Math.abs(angle);
+          const isCardinal = absAngle < 22.5 || Math.abs(angle - 90) < 22.5 || Math.abs(angle + 90) < 22.5 || Math.abs(absAngle - 180) < 22.5;
+
+          if (isCardinal) {
+            if (absAngle < 22.5 || absAngle > 157.5)       msiSetDirection(dx > 0 ? "right" : "left");
+            else if (angle > 0)                             msiSetDirection("down");
+            else                                            msiSetDirection("up");
+            sendScroll({ dx, dy });
+          } else {
+            msiSetDirection(null);
+          }
         },
       );
 
       const cursorPadEl = document.getElementById("cursorPad");
-      attachTouchBubbles(cursorPadEl);
+
+      // Build cursorPad compass indicator (reuses .msi-* CSS)
+      const cpiEl = document.createElement("div");
+      cpiEl.className = "middle-scroll-indicator";
+      cpiEl.innerHTML = `<div class="msi-cross">
+        <div class="msi-arrow msi-up"></div>
+        <div class="msi-arrow msi-down"></div>
+        <div class="msi-arrow msi-left"></div>
+        <div class="msi-arrow msi-right"></div>
+        <div class="msi-dot"></div>
+      </div>`;
+      cursorPadEl.appendChild(cpiEl);
+
+      const cpiArrows = {
+        up:    cpiEl.querySelector(".msi-up"),
+        down:  cpiEl.querySelector(".msi-down"),
+        left:  cpiEl.querySelector(".msi-left"),
+        right: cpiEl.querySelector(".msi-right"),
+      };
+
+      const cpiSetDirection = (dir) => {
+        for (const [k, a] of Object.entries(cpiArrows)) a.classList.toggle("active", k === dir);
+      };
+
+      const cpiShow = () => { cursorPadEl.classList.add("cursor-active"); cpiEl.classList.add("visible"); };
+      const cpiHide = () => { cursorPadEl.classList.remove("cursor-active"); cpiEl.classList.remove("visible"); cpiSetDirection(null); };
+
+      cursorPadEl.addEventListener("touchstart",  cpiShow, { passive: true });
+      cursorPadEl.addEventListener("touchend",    cpiHide, { passive: true });
+      cursorPadEl.addEventListener("touchcancel", cpiHide, { passive: true });
+
       const BASE_PIXELS_PER_KEY = 12;
 
       let cursorAccX = 0;
@@ -3185,11 +3338,10 @@
           switch (type) {
             case "move":
             case "dragMove": {
+              cpiSetDirection(direction ?? null);
               const threshold = BASE_PIXELS_PER_KEY / cursorpadSensitivity;
               cursorAccX += dx;
               cursorAccY += dy;
-
-              const key = type === "dragMove" ? `shift+${direction}` : direction;
 
               while (Math.abs(cursorAccX) >= threshold) {
                 send({ type: "key", key: cursorAccX > 0 ? (type === "dragMove" ? "shift+right" : "right") : type === "dragMove" ? "shift+left" : "left" });
@@ -3203,10 +3355,12 @@
             }
             case "dragStart":
               resetCursorAcc();
+              cpiSetDirection(null);
               cursorPadEl.classList.add("select-mode");
               break;
             case "dragEnd":
               resetCursorAcc();
+              cpiSetDirection(null);
               cursorPadEl.classList.remove("select-mode");
               break;
           }
@@ -3356,7 +3510,6 @@
               break;
             case "caps":
               kb.caps = !kb.caps;
-              console.log(kb);
               break;
             case "fn":
               kb.fn = !kb.fn;
