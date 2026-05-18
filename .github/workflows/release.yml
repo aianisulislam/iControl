@@ -1,0 +1,79 @@
+name: Build & Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(grep -m1 'MARKETING_VERSION' iControl.xcodeproj/project.pbxproj \
+            | tr -d ' ;' | cut -d'=' -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
+      - name: Build archive
+        run: |
+          xcodebuild \
+            -project iControl.xcodeproj \
+            -scheme iControl \
+            -configuration Release \
+            -archivePath "$PWD/build/iControl.xcarchive" \
+            archive \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            CODE_SIGNING_REQUIRED=YES \
+            CODE_SIGNING_ALLOWED=YES
+
+      - name: Extract .app from archive
+        run: |
+          cp -R "build/iControl.xcarchive/Products/Applications/iControl.app" "build/iControl.app"
+
+      - name: Package DMG
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p dmg_staging
+          cp -R build/iControl.app dmg_staging/
+          ln -s /Applications dmg_staging/Applications
+          hdiutil create \
+            -volname "iControl" \
+            -srcfolder dmg_staging \
+            -ov -format UDZO \
+            "build/iControl-$VERSION.dmg"
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            NOTES=$(git log --pretty=format:"- %s" "$PREV_TAG..HEAD")
+          else
+            NOTES=$(git log --pretty=format:"- %s" HEAD)
+          fi
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          gh release create "v$VERSION" \
+            "build/iControl-$VERSION.dmg#iControl.dmg" \
+            --title "v$VERSION" \
+            --notes "${{ steps.notes.outputs.notes }}"
